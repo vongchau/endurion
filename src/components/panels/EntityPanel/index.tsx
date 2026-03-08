@@ -1,7 +1,7 @@
 // src/components/panels/EntityPanel/index.tsx
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
-import type { GlobalIncident, CityPOI, CyberNode, Severity } from '../../../types'
+import type { GlobalIncident, CityPOI, CyberNode, Satellite, Severity } from '../../../types'
 
 const SEVERITY_BG: Record<Severity, string> = {
   critical: 'bg-hud-red/10 text-hud-red border-hud-red/30',
@@ -73,6 +73,25 @@ function NodeDetail({ data }: { data: CyberNode }) {
   )
 }
 
+function SatelliteDetail({ data }: { data: Satellite }) {
+  const isISS = data.type === 'iss'
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${isISS ? SEVERITY_BG.high : SEVERITY_BG.nominal}`}>
+        {isISS ? 'STATION' : 'STARLINK'} — NORAD {data.id}
+      </div>
+      <DataRow label="NAME" value={data.name} />
+      <DataRow label="ALTITUDE" value={`${data.altitude} km`} />
+      <DataRow label="VELOCITY" value={`${data.velocity} km/s`} />
+      <DataRow label="INCLINATION" value={`${data.inclination}°`} />
+      <DataRow label="LAT/LNG" value={`${data.lat.toFixed(2)}, ${data.lng.toFixed(2)}`} />
+      <div className="mt-3 h-16 rounded border border-hud-dim/20 bg-black/40 flex items-center justify-center">
+        <span className="font-mono text-[10px] text-hud-dim">[ TELEMETRY STREAM ]</span>
+      </div>
+    </div>
+  )
+}
+
 export function EntityPanel() {
   const panels = useHUDStore((s) => s.panels)
   const selectedEntity = useHUDStore((s) => s.selectedEntity)
@@ -108,6 +127,7 @@ export function EntityPanel() {
               {selectedEntity.type === 'incident' && <IncidentDetail data={selectedEntity.data as GlobalIncident} />}
               {selectedEntity.type === 'poi' && <POIDetail data={selectedEntity.data as CityPOI} />}
               {selectedEntity.type === 'node' && <NodeDetail data={selectedEntity.data as CyberNode} />}
+              {selectedEntity.type === 'satellite' && <SatelliteDetail data={selectedEntity.data as Satellite} />}
             </div>
           )}
         </motion.div>
