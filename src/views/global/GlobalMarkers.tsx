@@ -1,15 +1,27 @@
 // src/views/global/GlobalMarkers.tsx
 import { Marker } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
-import { globalIncidents } from '../../data/global-incidents'
-import type { GlobalIncident, Severity } from '../../types'
+import { useGlobalData } from '../../hooks/useGlobalData'
+import { useFlights } from '../../hooks/useFlights'
+import type { GlobalIncident, MilitaryFlight, GlobalLayer, Severity } from '../../types'
 
 const SEVERITY_COLORS: Record<Severity, string> = {
   critical: '#ff2d2d',
-  high: '#ffaa00',
-  medium: '#00d4ff',
-  low: '#4a6080',
-  nominal: '#00ff88',
+  high:     '#ffaa00',
+  medium:   '#00d4ff',
+  low:      '#4a6080',
+  nominal:  '#00ff88',
+}
+
+const DISASTER_TYPES = new Set([
+  'Earthquake', 'Flood', 'Wildfire', 'Volcano',
+  'Severe Storm', 'Landslide', 'Drought',
+])
+
+function incidentToLayer(incident: GlobalIncident): GlobalLayer {
+  if (incident.source === 'usgs' || incident.source === 'gdacs' || incident.source === 'eonet') return 'disaster'
+  if (DISASTER_TYPES.has(incident.type)) return 'disaster'
+  return 'conflict'
 }
 
 function PulseMarker({ incident }: { incident: GlobalIncident }) {
@@ -25,27 +37,48 @@ function PulseMarker({ incident }: { incident: GlobalIncident }) {
           setPanelVisible('entity', true)
         }}
         className="relative flex items-center justify-center w-8 h-8"
+        title={`${incident.type} — ${incident.country}`}
       >
-        {/* Pulse ring */}
-        <span
-          className="absolute w-8 h-8 rounded-full animate-ping opacity-40"
-          style={{ backgroundColor: color }}
-        />
-        {/* Core dot */}
-        <span
-          className="relative w-3 h-3 rounded-full border-2"
-          style={{ backgroundColor: `${color}33`, borderColor: color, boxShadow: `0 0 6px ${color}` }}
-        />
+        <span className="absolute w-8 h-8 rounded-full animate-ping opacity-40"
+          style={{ backgroundColor: color }} />
+        <span className="relative w-3 h-3 rounded-full border-2"
+          style={{ backgroundColor: `${color}33`, borderColor: color, boxShadow: `0 0 6px ${color}` }} />
       </button>
     </Marker>
   )
 }
 
+function FlightMarker({ flight }: { flight: MilitaryFlight }) {
+  return (
+    <Marker longitude={flight.lng} latitude={flight.lat} anchor="center">
+      <div
+        style={{ transform: `rotate(${flight.heading}deg)` }}
+        title={`${flight.callsign} — ${flight.country}`}
+        className="w-4 h-4 flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity"
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M6 1L10 11L6 8L2 11L6 1Z" fill="#00d4ff" />
+        </svg>
+      </div>
+    </Marker>
+  )
+}
+
 export function GlobalMarkers() {
+  const globalLayers = useHUDStore((s) => s.globalLayers)
+  const { data: incidents } = useGlobalData()
+  const { data: flights } = useFlights()
+
+  const visibleIncidents = incidents.filter((i) => globalLayers.has(incidentToLayer(i)))
+  const showFlights = globalLayers.has('military')
+
   return (
     <>
-      {globalIncidents.map((incident) => (
+      {visibleIncidents.map((incident) => (
         <PulseMarker key={incident.id} incident={incident} />
+      ))}
+      {showFlights && flights.map((flight) => (
+        <FlightMarker key={flight.id} flight={flight} />
       ))}
     </>
   )
