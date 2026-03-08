@@ -3,6 +3,8 @@ import { useRef, useCallback } from 'react'
 import Map from 'react-map-gl/mapbox'
 import type { MapRef } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
+import { GlobalMarkers } from '../../views/global/GlobalMarkers'
+import { CityMarkers } from '../../views/city/CityMarkers'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
@@ -29,13 +31,8 @@ export function MapCanvas() {
   const handleMapLoad = useCallback(() => {
     const map = mapRef.current?.getMap()
     if (!map) return
-    // Atmosphere effect for global view
     if (activeView === 'global') {
-      map.setFog({
-        color: 'rgb(5, 8, 16)',
-        'high-color': 'rgb(0, 50, 80)',
-        'horizon-blend': 0.02,
-      })
+      map.setFog({ color: 'rgb(5, 8, 16)', 'high-color': 'rgb(0, 50, 80)', 'horizon-blend': 0.02 })
     }
   }, [activeView])
 
@@ -51,7 +48,10 @@ export function MapCanvas() {
         projection={activeView === 'global' ? 'globe' : 'mercator'}
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
-      />
+      >
+        {activeView === 'global' && <GlobalMarkers />}
+        {activeView === 'city' && <CityMarkers />}
+      </Map>
     </div>
   )
 }
