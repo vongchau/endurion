@@ -1,6 +1,6 @@
 // src/types/index.ts
 
-export type ViewMode = 'global' | 'city' | 'cyber'
+export type ViewMode = 'global' | 'city' | 'cyber' | 'space'
 
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'nominal'
 
@@ -48,9 +48,20 @@ export interface CyberGraph {
   edges: CyberEdge[]
 }
 
+export interface Satellite {
+  id: string          // NORAD catalog number e.g. "25544"
+  name: string        // e.g. "ISS (ZARYA)" or "STARLINK-1007"
+  lat: number
+  lng: number
+  altitude: number    // km above Earth
+  velocity: number    // km/s
+  inclination: number // degrees
+  type: 'iss' | 'starlink'
+}
+
 export interface Entity {
-  type: 'incident' | 'poi' | 'node'
-  data: GlobalIncident | CityPOI | CyberNode
+  type: 'incident' | 'poi' | 'node' | 'satellite'
+  data: GlobalIncident | CityPOI | CyberNode | Satellite
 }
 
 export interface PanelState {
