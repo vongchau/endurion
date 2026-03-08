@@ -1,11 +1,12 @@
 // src/components/panels/EventFeedPanel/index.tsx
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
-import { globalIncidents } from '../../../data/global-incidents'
+import { useGlobalData } from '../../../hooks/useGlobalData'
+import { useFlights } from '../../../hooks/useFlights'
 import { cityPOIs } from '../../../data/city-pois'
 import { cyberGraph } from '../../../data/cyber-graph'
 import { useSatellites } from '../../../views/space/useSatellites'
-import type { Severity } from '../../../types'
+import type { Severity, GlobalLayer } from '../../../types'
 
 const SEVERITY_COLORS: Record<Severity, string> = {
   critical: 'text-hud-red border-hud-red/40',
@@ -30,14 +31,43 @@ export function EventFeedPanel() {
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
 
+  const globalLayers = useHUDStore((s) => s.globalLayers)
+  const { data: liveIncidents } = useGlobalData()
+  const { data: liveFlights } = useFlights()
+
   // Only fetch satellite data when in space view
   const { satellites, loading: satsLoading } = useSatellites()
 
   const items = activeView === 'global'
-    ? globalIncidents.map(i => ({
-        id: i.id, label: i.country, sublabel: i.type, severity: i.severity,
-        time: i.timestamp.slice(11, 16), onClick: () => setSelectedEntity({ type: 'incident', data: i }),
-      }))
+    ? [
+        ...liveIncidents
+          .filter((i) => {
+            const layer: GlobalLayer =
+              i.source === 'usgs' || i.source === 'gdacs' || i.source === 'eonet'
+                ? 'disaster' : 'conflict'
+            return globalLayers.has(layer)
+          })
+          .map(i => ({
+            id: i.id,
+            label: i.country,
+            sublabel: i.type,
+            severity: i.severity,
+            time: i.timestamp.slice(11, 16),
+            source: i.source.toUpperCase(),
+            onClick: () => setSelectedEntity({ type: 'incident', data: i }),
+          })),
+        ...(globalLayers.has('military')
+          ? liveFlights.map(f => ({
+              id: f.id,
+              label: f.callsign,
+              sublabel: f.country,
+              severity: 'medium' as const,
+              time: `${Math.round(f.altitude / 1000)}km`,
+              source: 'SKY',
+              onClick: () => {},
+            }))
+          : []),
+      ]
     : activeView === 'city'
     ? cityPOIs.map(p => ({
         id: p.id, label: p.label, sublabel: p.district,
@@ -75,7 +105,13 @@ export function EventFeedPanel() {
           exit={{ opacity: 0, x: -20 }}
           className="fixed left-4 top-16 bottom-16 z-40 w-72 flex flex-col rounded-lg border border-hud-cyan/20 bg-hud-panel/80 backdrop-blur-md overflow-hidden"
         >
-          <PanelHeader title={activeView === 'space' ? 'TRACKED OBJECTS' : 'LIVE EVENT FEED'} />
+          <PanelHeader title={
+            activeView === 'global'
+              ? `LIVE EVENT FEED · ${items.length}`
+              : activeView === 'space'
+              ? 'TRACKED OBJECTS'
+              : 'LIVE EVENT FEED'
+          } />
           {activeView === 'space' && satsLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <span className="font-mono text-[10px] text-hud-dim animate-pulse">ACQUIRING SIGNALS...</span>
@@ -94,6 +130,9 @@ export function EventFeedPanel() {
                   <span className={`mt-0.5 text-[9px] font-mono border px-1 rounded ${SEVERITY_COLORS[item.severity]}`}>
                     {item.severity.toUpperCase().slice(0, 4)}
                   </span>
+                  {item.source && (
+                    <span className="font-mono text-[9px] text-hud-dim/50 shrink-0">[{item.source}]</span>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="font-mono text-xs text-hud-text truncate">{item.label}</div>
                     <div className="font-mono text-[10px] text-hud-dim truncate">{item.sublabel}</div>
