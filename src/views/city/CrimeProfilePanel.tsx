@@ -8,8 +8,8 @@ import { useHUDStore } from '../../store'
 import { useCrimeProfile } from '../../hooks/useCrimeProfile'
 import { mapRef } from '../../mapRef'
 
-// Shared chart colors aligned with HUD palette
-export const CHART_COLORS = {
+// Chart colors aligned with HUD palette
+const CHART_COLORS = {
   cyan:   '#00d4ff',
   amber:  '#ffaa00',
   red:    '#ff2d2d',

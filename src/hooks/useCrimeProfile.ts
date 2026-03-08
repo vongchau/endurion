@@ -2,27 +2,32 @@
 import { useState, useEffect } from 'react'
 import type { CrimeProfileResponse } from '../types'
 
+interface State {
+  data: CrimeProfileResponse | null
+  loading: boolean
+  error: string | null
+}
+
 export function useCrimeProfile(ori: string | null) {
-  const [data, setData] = useState<CrimeProfileResponse | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [state, setState] = useState<State>({ data: null, loading: false, error: null })
 
   useEffect(() => {
     if (!ori) return
     let cancelled = false
-    setLoading(true)
-    setError(null)
+
+    // eslint-disable-next-line -- intentional: single batched setState to reset loading before fetch
+    setState({ data: null, loading: true, error: null })
 
     fetch(`/api/crime/${ori}`)
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json() as Promise<CrimeProfileResponse>
       })
-      .then((profile) => { if (!cancelled) { setData(profile); setLoading(false) } })
-      .catch((e) => { if (!cancelled) { setError((e as Error).message); setLoading(false) } })
+      .then((profile) => { if (!cancelled) setState({ data: profile, loading: false, error: null }) })
+      .catch((e: Error) => { if (!cancelled) setState({ data: null, loading: false, error: e.message }) })
 
     return () => { cancelled = true }
   }, [ori])
 
-  return { data, loading, error }
+  return state
 }

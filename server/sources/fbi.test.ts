@@ -9,6 +9,40 @@ import {
   normalizeTimeOfDay,
 } from './fbi'
 
+describe('normalizeOffenderDemo', () => {
+  it('aggregates race and sex fields', () => {
+    const raw = {
+      data: [
+        { age_range_code: '18-24', race_desc: 'White', sex_code: 'M', count: 100 },
+        { age_range_code: '25-34', race_desc: 'White', sex_code: 'F', count: 50 },
+      ],
+    }
+    const result = normalizeOffenderDemo(raw)
+    expect(result.race['White']).toBe(150)
+    expect(result.sex['M']).toBe(100)
+  })
+
+  it('returns empty maps for missing data', () => {
+    expect(normalizeOffenderDemo({})).toEqual({ age: {}, race: {}, sex: {} })
+  })
+})
+
+describe('normalizeVictimDemo', () => {
+  it('aggregates victim race fields', () => {
+    const raw = {
+      data: [
+        { age_range_code: '35-49', race_desc: 'Black', sex_code: 'M', count: 200 },
+      ],
+    }
+    const result = normalizeVictimDemo(raw)
+    expect(result.race['Black']).toBe(200)
+  })
+
+  it('returns empty maps for missing data', () => {
+    expect(normalizeVictimDemo({})).toEqual({ age: {}, race: {}, sex: {} })
+  })
+})
+
 describe('normalizeTrend', () => {
   it('extracts year + count from summarized annual data', () => {
     const raw = { data: [{ data_year: 2020, offense_count: 1000 }, { data_year: 2021, offense_count: 1200 }] }
