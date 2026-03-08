@@ -1,0 +1,83 @@
+// src/components/panels/EventFeedPanel/index.tsx
+import { motion, AnimatePresence } from 'framer-motion'
+import { useHUDStore } from '../../../store'
+import { globalIncidents } from '../../../data/global-incidents'
+import { cityPOIs } from '../../../data/city-pois'
+import { cyberGraph } from '../../../data/cyber-graph'
+import type { Severity } from '../../../types'
+
+const SEVERITY_COLORS: Record<Severity, string> = {
+  critical: 'text-hud-red border-hud-red/40',
+  high: 'text-hud-amber border-hud-amber/40',
+  medium: 'text-hud-cyan border-hud-cyan/40',
+  low: 'text-hud-dim border-hud-dim/40',
+  nominal: 'text-hud-green border-hud-green/40',
+}
+
+function PanelHeader({ title }: { title: string }) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 border-b border-hud-cyan/20">
+      <div className="w-1 h-4 bg-hud-cyan rounded-full" />
+      <span className="font-mono text-[10px] tracking-widest text-hud-cyan">{title}</span>
+    </div>
+  )
+}
+
+export function EventFeedPanel() {
+  const panels = useHUDStore((s) => s.panels)
+  const activeView = useHUDStore((s) => s.activeView)
+  const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
+
+  const items = activeView === 'global'
+    ? globalIncidents.map(i => ({
+        id: i.id, label: i.country, sublabel: i.type, severity: i.severity,
+        time: i.timestamp.slice(11, 16), onClick: () => setSelectedEntity({ type: 'incident', data: i }),
+      }))
+    : activeView === 'city'
+    ? cityPOIs.map(p => ({
+        id: p.id, label: p.label, sublabel: p.district,
+        severity: (p.activityLevel > 80 ? 'critical' : p.activityLevel > 60 ? 'high' : 'medium') as Severity,
+        time: '--:--', onClick: () => setSelectedEntity({ type: 'poi', data: p }),
+      }))
+    : cyberGraph.edges.map(e => ({
+        id: e.id, label: `${e.sourceId} → ${e.targetId}`, sublabel: e.protocol,
+        severity: (e.threatScore > 85 ? 'critical' : e.threatScore > 65 ? 'high' : 'medium') as Severity,
+        time: '--:--', onClick: () => {},
+      }))
+
+  return (
+    <AnimatePresence>
+      {panels.eventFeed && (
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          className="fixed left-4 top-16 bottom-16 z-40 w-72 flex flex-col rounded-lg border border-hud-cyan/20 bg-hud-panel/80 backdrop-blur-md overflow-hidden"
+        >
+          <PanelHeader title="LIVE EVENT FEED" />
+          <div className="flex-1 overflow-y-auto">
+            {items.map((item, i) => (
+              <motion.button
+                key={item.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.04 }}
+                onClick={item.onClick}
+                className="w-full text-left px-3 py-2 border-b border-hud-dim/10 hover:bg-hud-cyan/5 transition-colors flex items-start gap-2"
+              >
+                <span className={`mt-0.5 text-[9px] font-mono border px-1 rounded ${SEVERITY_COLORS[item.severity]}`}>
+                  {item.severity.toUpperCase().slice(0, 4)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-mono text-xs text-hud-text truncate">{item.label}</div>
+                  <div className="font-mono text-[10px] text-hud-dim truncate">{item.sublabel}</div>
+                </div>
+                <span className="font-mono text-[10px] text-hud-dim/60 shrink-0">{item.time}</span>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
