@@ -29,6 +29,8 @@ const heatmapData = {
 export function CityMarkers() {
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
+  const selectedCity = useHUDStore((s) => s.selectedCity)
+  if (!selectedCity) return null
 
   return (
     <>
