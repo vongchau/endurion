@@ -5,6 +5,7 @@ import { cors } from 'hono/cors'
 import { getIncidents, getFlights } from './cache'
 import { deduplicateIncidents } from './dedup'
 import { startPoller } from './poller'
+import { crimeRoute } from './routes/crime'
 
 const app = new Hono()
 
@@ -14,6 +15,7 @@ app.use('*', cors({
 
 app.get('/api/incidents', (c) => c.json(deduplicateIncidents(getIncidents())))
 app.get('/api/flights',   (c) => c.json(getFlights()))
+app.route('/api/crime', crimeRoute)
 
 // Block until initial data is fetched, then start accepting connections
 await startPoller()
