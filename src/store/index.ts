@@ -1,6 +1,6 @@
 // src/store/index.ts
 import { create } from 'zustand'
-import { ViewMode, PanelState, Entity } from '../types'
+import type { ViewMode, PanelState, Entity } from '../types'
 
 interface HUDStore {
   activeView: ViewMode

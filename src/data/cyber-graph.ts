@@ -1,5 +1,5 @@
 // src/data/cyber-graph.ts
-import { CyberGraph } from '../types'
+import type { CyberGraph } from '../types'
 
 export const cyberGraph: CyberGraph = {
   nodes: [

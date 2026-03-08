@@ -1,5 +1,5 @@
 // src/data/global-incidents.ts
-import { GlobalIncident } from '../types'
+import type { GlobalIncident } from '../types'
 
 export const globalIncidents: GlobalIncident[] = [
   { id: 'g1', lat: 48.8566, lng: 2.3522, country: 'France', type: 'Cyber Intrusion', severity: 'critical', timestamp: '2026-03-08T14:23:00Z', summary: 'State-sponsored APT detected in financial sector infrastructure' },

@@ -1,5 +1,5 @@
 // src/data/city-pois.ts
-import { CityPOI } from '../types'
+import type { CityPOI } from '../types'
 
 // Centered on New York City
 export const cityPOIs: CityPOI[] = [
