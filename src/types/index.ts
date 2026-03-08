@@ -86,3 +86,33 @@ export interface PanelState {
   statusBar: boolean
   timeline: boolean
 }
+
+export interface CityProfile {
+  id: string
+  name: string
+  state: string
+  ori: string       // FBI Originating Agency Identifier, e.g. 'NY0303000'
+  lat: number
+  lng: number
+  zoom: number
+}
+
+export interface CrimeProfileResponse {
+  city: string
+  ori: string
+  fetchedAt: string
+  trend: Array<{ year: number; count: number }>
+  offenses: Array<{ offense: string; count: number }>
+  weapons: Array<{ weapon: string; count: number }>
+  offenderDemo: {
+    age: Record<string, number>
+    race: Record<string, number>
+    sex: Record<string, number>
+  }
+  victimDemo: {
+    age: Record<string, number>
+    race: Record<string, number>
+    sex: Record<string, number>
+  }
+  timeOfDay: Array<{ hour: number; count: number }>
+}
