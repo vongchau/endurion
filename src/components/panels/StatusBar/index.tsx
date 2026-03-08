@@ -7,6 +7,7 @@ const VIEW_LABELS = {
   global: { title: 'GLOBAL THREAT OVERVIEW', subtitle: 'ALL-SOURCE INTELLIGENCE' },
   city: { title: 'URBAN SURVEILLANCE', subtitle: 'CITY OPERATIONS CENTER' },
   cyber: { title: 'CYBER OPERATIONS', subtitle: 'NETWORK THREAT INTELLIGENCE' },
+  space: { title: 'ORBITAL SURVEILLANCE', subtitle: 'SPACE DOMAIN AWARENESS' },
 }
 
 const criticalCount = globalIncidents.filter(i => i.severity === 'critical').length
@@ -48,20 +49,24 @@ export function StatusBar() {
             {label.subtitle}
           </div>
 
-          {/* Right: threat counts */}
+          {/* Right: context-aware counts */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-hud-red" />
-              <span className="font-mono text-xs text-hud-dim">
-                CRITICAL <span className="text-hud-red">{criticalCount}</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-hud-amber" />
-              <span className="font-mono text-xs text-hud-dim">
-                HIGH <span className="text-hud-amber">{highCount}</span>
-              </span>
-            </div>
+            {activeView !== 'space' && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-hud-red" />
+                  <span className="font-mono text-xs text-hud-dim">
+                    CRITICAL <span className="text-hud-red">{criticalCount}</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-hud-amber" />
+                  <span className="font-mono text-xs text-hud-dim">
+                    HIGH <span className="text-hud-amber">{highCount}</span>
+                  </span>
+                </div>
+              </>
+            )}
             <div className="font-mono text-[10px] text-hud-dim/60">
               {new Date().toISOString().slice(0, 19).replace('T', ' ')}Z
             </div>
