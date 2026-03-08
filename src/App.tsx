@@ -8,6 +8,8 @@ import { EventFeedPanel } from './components/panels/EventFeedPanel'
 import { EntityPanel } from './components/panels/EntityPanel'
 import { Timeline } from './components/panels/Timeline'
 import { PanelControls } from './components/PanelControls'
+import { LayerToggles } from './views/global/LayerToggles'
+import { useHUDStore } from './store'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
 function BootScreen({ onComplete }: { onComplete: () => void }) {
@@ -57,6 +59,7 @@ function BootScreen({ onComplete }: { onComplete: () => void }) {
 
 export default function App() {
   const [booted, setBooted] = useState(false)
+  const activeView = useHUDStore((s) => s.activeView)
   useKeyboardShortcuts()
 
   return (
@@ -71,6 +74,7 @@ export default function App() {
       <EntityPanel />
       <Timeline />
       <PanelControls />
+      {activeView === 'global' && <LayerToggles />}
       <CommandSwitcher />
     </div>
   )
