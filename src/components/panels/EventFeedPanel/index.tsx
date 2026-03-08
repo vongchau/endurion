@@ -6,7 +6,8 @@ import { useFlights } from '../../../hooks/useFlights'
 import { cityPOIs } from '../../../data/city-pois'
 import { cyberGraph } from '../../../data/cyber-graph'
 import { useSatellites } from '../../../views/space/useSatellites'
-import type { Severity, GlobalLayer } from '../../../types'
+import type { Severity } from '../../../types'
+import { incidentToLayer } from '../../../utils/incidentLayer'
 
 const SEVERITY_COLORS: Record<Severity, string> = {
   critical: 'text-hud-red border-hud-red/40',
@@ -41,12 +42,7 @@ export function EventFeedPanel() {
   const items = activeView === 'global'
     ? [
         ...liveIncidents
-          .filter((i) => {
-            const layer: GlobalLayer =
-              i.source === 'usgs' || i.source === 'gdacs' || i.source === 'eonet'
-                ? 'disaster' : 'conflict'
-            return globalLayers.has(layer)
-          })
+          .filter((i) => globalLayers.has(incidentToLayer(i)))
           .map(i => ({
             id: i.id,
             label: i.country,

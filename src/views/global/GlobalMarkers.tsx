@@ -3,7 +3,8 @@ import { Marker } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
 import { useGlobalData } from '../../hooks/useGlobalData'
 import { useFlights } from '../../hooks/useFlights'
-import type { GlobalIncident, MilitaryFlight, GlobalLayer, Severity } from '../../types'
+import type { GlobalIncident, MilitaryFlight, Severity } from '../../types'
+import { incidentToLayer } from '../../utils/incidentLayer'
 
 const SEVERITY_COLORS: Record<Severity, string> = {
   critical: '#ff2d2d',
@@ -11,17 +12,6 @@ const SEVERITY_COLORS: Record<Severity, string> = {
   medium:   '#00d4ff',
   low:      '#4a6080',
   nominal:  '#00ff88',
-}
-
-const DISASTER_TYPES = new Set([
-  'Earthquake', 'Flood', 'Wildfire', 'Volcano',
-  'Severe Storm', 'Landslide', 'Drought',
-])
-
-function incidentToLayer(incident: GlobalIncident): GlobalLayer {
-  if (incident.source === 'usgs' || incident.source === 'gdacs' || incident.source === 'eonet') return 'disaster'
-  if (DISASTER_TYPES.has(incident.type)) return 'disaster'
-  return 'conflict'
 }
 
 function PulseMarker({ incident }: { incident: GlobalIncident }) {

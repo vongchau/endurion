@@ -9,7 +9,6 @@ interface SourceEntry {
 
 const incidentStore = new Map<string, SourceEntry>()
 let flightStore: MilitaryFlight[] = []
-let flightsUpdatedAt = 0
 
 export function setIncidents(source: string, data: GlobalIncident[]) {
   incidentStore.set(source, { data, lastUpdated: Date.now(), stale: false })
@@ -32,7 +31,6 @@ export function getCacheStatus(source: string) {
 
 export function setFlights(data: MilitaryFlight[]) {
   flightStore = data
-  flightsUpdatedAt = Date.now()
 }
 
 export function getFlights(): MilitaryFlight[] {
