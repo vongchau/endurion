@@ -7,6 +7,7 @@ const VIEWS: { id: ViewMode; label: string; key: string }[] = [
   { id: 'global', label: 'GLOBAL', key: '1' },
   { id: 'city', label: 'CITY', key: '2' },
   { id: 'cyber', label: 'CYBER', key: '3' },
+  { id: 'space', label: 'SPACE', key: '4' },
 ]
 
 export function CommandSwitcher() {
