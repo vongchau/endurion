@@ -1,7 +1,7 @@
 // src/components/panels/StatusBar/index.tsx
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
-import { globalIncidents } from '../../../data/global-incidents'
+import { useGlobalData } from '../../../hooks/useGlobalData'
 
 const VIEW_LABELS = {
   global: { title: 'GLOBAL THREAT OVERVIEW', subtitle: 'ALL-SOURCE INTELLIGENCE' },
@@ -9,9 +9,6 @@ const VIEW_LABELS = {
   cyber: { title: 'CYBER OPERATIONS', subtitle: 'NETWORK THREAT INTELLIGENCE' },
   space: { title: 'ORBITAL SURVEILLANCE', subtitle: 'SPACE DOMAIN AWARENESS' },
 }
-
-const criticalCount = globalIncidents.filter(i => i.severity === 'critical').length
-const highCount = globalIncidents.filter(i => i.severity === 'high').length
 
 function PulsingDot({ color }: { color: string }) {
   return (
@@ -26,6 +23,9 @@ export function StatusBar() {
   const activeView = useHUDStore((s) => s.activeView)
   const panels = useHUDStore((s) => s.panels)
   const label = VIEW_LABELS[activeView]
+  const { data: incidents } = useGlobalData()
+  const criticalCount = incidents.filter(i => i.severity === 'critical').length
+  const highCount = incidents.filter(i => i.severity === 'high').length
 
   return (
     <AnimatePresence>

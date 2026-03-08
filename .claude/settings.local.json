@@ -5,7 +5,10 @@
       "Bash(git:*)",
       "Bash(npx vitest:*)",
       "Bash(npm run:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(mkdir:*)",
+      "Bash(firecrawl:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
