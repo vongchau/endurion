@@ -1,12 +1,13 @@
 // src/components/MapCanvas/index.tsx
-import { useRef, useCallback } from 'react'
+import { useCallback } from 'react'
 import Map from 'react-map-gl/mapbox'
-import type { MapRef } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
 import { GlobalMarkers } from '../../views/global/GlobalMarkers'
 import { CityMarkers } from '../../views/city/CityMarkers'
+import { CityPins } from '../../views/city/CityPins'
 import { CyberLayer } from '../../views/cyber/CyberLayer'
 import { SpaceLayer } from '../../views/space/SpaceLayer'
+import { mapRef } from '../../mapRef'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
@@ -17,7 +18,7 @@ const VIEW_CONFIGS = {
   },
   city: {
     mapStyle: 'mapbox://styles/mapbox/satellite-streets-v12',
-    initialViewState: { longitude: -74.006, latitude: 40.7128, zoom: 11 },
+    initialViewState: { longitude: -96, latitude: 38, zoom: 3.5 },
   },
   cyber: {
     mapStyle: 'mapbox://styles/mapbox/dark-v11',
@@ -30,8 +31,8 @@ const VIEW_CONFIGS = {
 }
 
 export function MapCanvas() {
-  const mapRef = useRef<MapRef>(null)
   const activeView = useHUDStore((s) => s.activeView)
+  const selectedCity = useHUDStore((s) => s.selectedCity)
   const config = VIEW_CONFIGS[activeView]
 
   const handleMapLoad = useCallback(() => {
@@ -59,6 +60,7 @@ export function MapCanvas() {
         attributionControl={false}
       >
         {activeView === 'global' && <GlobalMarkers />}
+        {activeView === 'city' && !selectedCity && <CityPins mapRef={mapRef} />}
         {activeView === 'city' && <CityMarkers />}
         {activeView === 'cyber' && <CyberLayer />}
         {activeView === 'space' && <SpaceLayer />}

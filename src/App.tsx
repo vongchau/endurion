@@ -9,8 +9,10 @@ import { EntityPanel } from './components/panels/EntityPanel'
 import { Timeline } from './components/panels/Timeline'
 import { PanelControls } from './components/PanelControls'
 import { LayerToggles } from './views/global/LayerToggles'
+import { CitySearch } from './views/city/CitySearch'
 import { useHUDStore } from './store'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { mapRef } from './mapRef'
 
 function BootScreen({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
@@ -75,6 +77,7 @@ export default function App() {
       <Timeline />
       <PanelControls />
       {activeView === 'global' && <LayerToggles />}
+      {activeView === 'city' && <CitySearch mapRef={mapRef} />}
       <CommandSwitcher />
     </div>
   )
