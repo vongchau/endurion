@@ -13,7 +13,23 @@ export interface GlobalIncident {
   severity: Severity
   timestamp: string
   summary: string
+  source: 'usgs' | 'gdacs' | 'eonet' | 'acled'
+  url?: string
 }
+
+export interface MilitaryFlight {
+  id: string        // ICAO 24-bit hex
+  callsign: string
+  lat: number
+  lng: number
+  altitude: number  // meters
+  velocity: number  // m/s
+  heading: number   // degrees 0–360
+  country: string
+  timestamp: string
+}
+
+export type GlobalLayer = 'conflict' | 'disaster' | 'military'
 
 export interface CityPOI {
   id: string
