@@ -62,7 +62,7 @@ function ISSMarker({ sat }: { sat: Satellite }) {
 
 export function SpaceLayer() {
   const { current: map } = useMap()
-  const { satellites, iss, geojson, loading, usingMockData } = useSatellites()
+  const { iss, geojson, loading, usingMockData } = useSatellites()
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
 

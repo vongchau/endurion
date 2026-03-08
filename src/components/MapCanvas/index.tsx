@@ -6,6 +6,7 @@ import { useHUDStore } from '../../store'
 import { GlobalMarkers } from '../../views/global/GlobalMarkers'
 import { CityMarkers } from '../../views/city/CityMarkers'
 import { CyberLayer } from '../../views/cyber/CyberLayer'
+import { SpaceLayer } from '../../views/space/SpaceLayer'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
@@ -22,6 +23,10 @@ const VIEW_CONFIGS = {
     mapStyle: 'mapbox://styles/mapbox/dark-v11',
     initialViewState: { longitude: 10, latitude: 20, zoom: 1.8 },
   },
+  space: {
+    mapStyle: 'mapbox://styles/mapbox/dark-v11',
+    initialViewState: { longitude: 10, latitude: 20, zoom: 1.8 },
+  },
 }
 
 export function MapCanvas() {
@@ -35,6 +40,9 @@ export function MapCanvas() {
     if (activeView === 'global') {
       map.setFog({ color: 'rgb(5, 8, 16)', 'high-color': 'rgb(0, 50, 80)', 'horizon-blend': 0.02 })
     }
+    if (activeView === 'space') {
+      map.setFog({ color: 'rgb(2, 4, 8)', 'high-color': 'rgb(0, 0, 20)', 'horizon-blend': 0.01 })
+    }
   }, [activeView])
 
   return (
@@ -46,13 +54,14 @@ export function MapCanvas() {
         mapStyle={config.mapStyle}
         initialViewState={config.initialViewState}
         onLoad={handleMapLoad}
-        projection={activeView === 'global' ? 'globe' : 'mercator'}
+        projection={activeView === 'global' || activeView === 'space' ? 'globe' : 'mercator'}
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
       >
         {activeView === 'global' && <GlobalMarkers />}
         {activeView === 'city' && <CityMarkers />}
         {activeView === 'cyber' && <CyberLayer />}
+        {activeView === 'space' && <SpaceLayer />}
       </Map>
     </div>
   )

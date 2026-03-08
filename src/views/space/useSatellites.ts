@@ -53,7 +53,7 @@ function computePositions(entries: SatrecEntry[]): Satellite[] {
   for (const entry of entries) {
     try {
       const pv = satellite.propagate(entry.satrec, now)
-      if (!pv.position || typeof pv.position === 'boolean') continue
+      if (!pv || !pv.position || typeof pv.position === 'boolean') continue
       if (!pv.velocity || typeof pv.velocity === 'boolean') continue
 
       const pos = pv.position as satellite.EciVec3<number>
