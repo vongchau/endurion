@@ -5,6 +5,7 @@ import type { MapRef } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
 import { GlobalMarkers } from '../../views/global/GlobalMarkers'
 import { CityMarkers } from '../../views/city/CityMarkers'
+import { CyberLayer } from '../../views/cyber/CyberLayer'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
@@ -51,6 +52,7 @@ export function MapCanvas() {
       >
         {activeView === 'global' && <GlobalMarkers />}
         {activeView === 'city' && <CityMarkers />}
+        {activeView === 'cyber' && <CyberLayer />}
       </Map>
     </div>
   )
