@@ -10,6 +10,7 @@ import { Timeline } from './components/panels/Timeline'
 import { PanelControls } from './components/PanelControls'
 import { LayerToggles } from './views/global/LayerToggles'
 import { CitySearch } from './views/city/CitySearch'
+import { CrimeProfilePanel } from './views/city/CrimeProfilePanel'
 import { useHUDStore } from './store'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { mapRef } from './mapRef'
@@ -62,6 +63,7 @@ function BootScreen({ onComplete }: { onComplete: () => void }) {
 export default function App() {
   const [booted, setBooted] = useState(false)
   const activeView = useHUDStore((s) => s.activeView)
+  const selectedCity = useHUDStore((s) => s.selectedCity)
   useKeyboardShortcuts()
 
   return (
@@ -78,6 +80,9 @@ export default function App() {
       <PanelControls />
       {activeView === 'global' && <LayerToggles />}
       {activeView === 'city' && <CitySearch mapRef={mapRef} />}
+      <AnimatePresence>
+        {activeView === 'city' && selectedCity && <CrimeProfilePanel key="crime-panel" />}
+      </AnimatePresence>
       <CommandSwitcher />
     </div>
   )
