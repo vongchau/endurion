@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npm run:*)",
+      "Bash(python3:*)"
     ]
   }
 }

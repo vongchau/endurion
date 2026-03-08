@@ -1,9 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap');
 @import 'mapbox-gl/dist/mapbox-gl.css';
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@theme {
+  --color-hud-bg: #050810;
+  --color-hud-panel: #0a0f1e;
+  --color-hud-cyan: #00d4ff;
+  --color-hud-purple: #7b2fff;
+  --color-hud-red: #ff2d2d;
+  --color-hud-amber: #ffaa00;
+  --color-hud-green: #00ff88;
+  --color-hud-text: #e0f0ff;
+  --color-hud-dim: #4a6080;
+
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+
+  --shadow-cyan-glow: 0 0 8px rgba(0, 212, 255, 0.4);
+  --shadow-red-glow: 0 0 8px rgba(255, 45, 45, 0.4);
+}
 
 * {
   box-sizing: border-box;
