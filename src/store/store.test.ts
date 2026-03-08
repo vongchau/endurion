@@ -32,3 +32,29 @@ describe('HUD Store', () => {
     expect(useHUDStore.getState().selectedEntity).toEqual(entity)
   })
 })
+
+describe('globalLayers', () => {
+  beforeEach(() => {
+    useHUDStore.setState({
+      globalLayers: new Set(['conflict', 'disaster', 'military']),
+    })
+  })
+
+  it('starts with all three layers active', () => {
+    const { globalLayers } = useHUDStore.getState()
+    expect(globalLayers.has('conflict')).toBe(true)
+    expect(globalLayers.has('disaster')).toBe(true)
+    expect(globalLayers.has('military')).toBe(true)
+  })
+
+  it('toggleGlobalLayer removes an active layer', () => {
+    useHUDStore.getState().toggleGlobalLayer('conflict')
+    expect(useHUDStore.getState().globalLayers.has('conflict')).toBe(false)
+  })
+
+  it('toggleGlobalLayer re-adds an inactive layer', () => {
+    useHUDStore.getState().toggleGlobalLayer('conflict') // off
+    useHUDStore.getState().toggleGlobalLayer('conflict') // on
+    expect(useHUDStore.getState().globalLayers.has('conflict')).toBe(true)
+  })
+})
