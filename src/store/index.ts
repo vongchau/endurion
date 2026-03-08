@@ -1,6 +1,6 @@
 // src/store/index.ts
 import { create } from 'zustand'
-import type { ViewMode, PanelState, Entity, GlobalLayer } from '../types'
+import type { ViewMode, PanelState, Entity, GlobalLayer, CityProfile } from '../types'
 
 interface HUDStore {
   activeView: ViewMode
@@ -10,6 +10,8 @@ interface HUDStore {
   setPanelVisible: (panel: keyof PanelState, visible: boolean) => void
   selectedEntity: Entity | null
   setSelectedEntity: (entity: Entity | null) => void
+  selectedCity: CityProfile | null
+  setSelectedCity: (city: CityProfile | null) => void
   globalLayers: Set<GlobalLayer>
   toggleGlobalLayer: (layer: GlobalLayer) => void
 }
@@ -33,6 +35,8 @@ export const useHUDStore = create<HUDStore>((set) => ({
     })),
   selectedEntity: null,
   setSelectedEntity: (entity) => set({ selectedEntity: entity }),
+  selectedCity: null,
+  setSelectedCity: (city) => set({ selectedCity: city }),
   globalLayers: new Set<GlobalLayer>(['conflict', 'disaster', 'military']),
   toggleGlobalLayer: (layer) =>
     set((state) => {

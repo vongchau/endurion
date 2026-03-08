@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useHUDStore } from './index'
 import { act } from '@testing-library/react'
+import type { CityProfile } from '../types'
 
 describe('HUD Store', () => {
   beforeEach(() => {
@@ -30,6 +31,31 @@ describe('HUD Store', () => {
     const entity = { type: 'incident' as const, data: { id: 'g1' } as any }
     act(() => useHUDStore.getState().setSelectedEntity(entity))
     expect(useHUDStore.getState().selectedEntity).toEqual(entity)
+  })
+})
+
+describe('selectedCity', () => {
+  beforeEach(() => {
+    useHUDStore.setState({ selectedCity: null })
+  })
+
+  it('selectedCity starts null', () => {
+    const { selectedCity } = useHUDStore.getState()
+    expect(selectedCity).toBeNull()
+  })
+
+  it('setSelectedCity updates selectedCity', () => {
+    const city: CityProfile = {
+      id: 'nyc', name: 'New York City', state: 'NY', ori: 'NY0303000',
+      lat: 40.7128, lng: -74.006, zoom: 11,
+    }
+    useHUDStore.getState().setSelectedCity(city)
+    expect(useHUDStore.getState().selectedCity).toEqual(city)
+  })
+
+  it('setSelectedCity(null) clears city', () => {
+    useHUDStore.getState().setSelectedCity(null)
+    expect(useHUDStore.getState().selectedCity).toBeNull()
   })
 })
 
