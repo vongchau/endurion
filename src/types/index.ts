@@ -122,6 +122,13 @@ export interface CyberNode {
   label: string
   type: 'actor' | 'asset' | 'cluster' | 'compromised'
   threatScore: number // 0-100
+  // Cloudflare enrichment
+  country?: string
+  category?: string
+  targetIndustry?: string
+  eventCount?: number
+  tags?: string[]
+  parentId?: string  // for burst nodes — links back to actor node
 }
 
 export interface CyberEdge {
