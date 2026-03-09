@@ -6,7 +6,7 @@ import { getIncidents, getFlights } from './cache'
 import { deduplicateIncidents } from './dedup'
 import { startPoller } from './poller'
 import { crimeRoute } from './routes/crime'
-import { getDensityZones, getMilitaryCandidates, getChokepoints, getDisruptions, getStats } from './aisCache'
+import { getDensityZones, getMilitaryCandidates, getChokepoints, getDisruptions, getStats, getAllVessels } from './aisCache'
 import { startAis, isConnected as aisConnected } from './ais'
 
 const app = new Hono()
@@ -24,6 +24,7 @@ app.get('/api/vessels/military',    (c) => c.json(getMilitaryCandidates()))
 app.get('/api/vessels/chokepoints', (c) => c.json(getChokepoints()))
 app.get('/api/vessels/disruptions', (c) => c.json(getDisruptions()))
 app.get('/api/vessels/stats',       (c) => c.json({ ...getStats(), connected: aisConnected }))
+app.get('/api/vessels/all',         (c) => c.json(getAllVessels()))
 
 // Start serving immediately — polling runs in background so Vite proxy
 // is never connection-refused on cold start. Cache returns [] until first
