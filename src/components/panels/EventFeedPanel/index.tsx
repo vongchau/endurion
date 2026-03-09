@@ -4,7 +4,7 @@ import { useHUDStore } from '../../../store'
 import { useGlobalData } from '../../../hooks/useGlobalData'
 import { useFlights } from '../../../hooks/useFlights'
 import { useDisruptions } from '../../../hooks/useDisruptions'
-import { cityPOIs } from '../../../data/city-pois'
+import { useDrones } from '../../../hooks/useDrones'
 import { cyberGraph } from '../../../data/cyber-graph'
 import { useSatellites } from '../../../views/space/useSatellites'
 import type { Severity } from '../../../types'
@@ -37,6 +37,11 @@ export function EventFeedPanel() {
   const { data: liveIncidents } = useGlobalData()
   const { data: liveFlights } = useFlights()
   const { disruptions } = useDisruptions()
+
+  const cityLayers = useHUDStore((s) => s.cityLayers)
+  const mapBounds  = useHUDStore((s) => s.mapBounds)
+  const showUAS    = activeView === 'city' && cityLayers.has('uas')
+  const { drones } = useDrones(showUAS, mapBounds)
 
   // Only fetch satellite data when in space view
   const { satellites, loading: satsLoading } = useSatellites()
@@ -80,10 +85,17 @@ export function EventFeedPanel() {
           : []),
       ]
     : activeView === 'city'
-    ? cityPOIs.map(p => ({
-        id: p.id, label: p.label, sublabel: p.district,
-        severity: (p.activityLevel > 80 ? 'critical' : p.activityLevel > 60 ? 'high' : 'medium') as Severity,
-        time: '--:--', onClick: () => setSelectedEntity({ type: 'poi', data: p }),
+    ? drones.map(d => ({
+        id: d.id,
+        label: d.sensorId,
+        sublabel: d.state === 'airborne' ? `${Math.round(d.altitude)}m · ${d.speed.toFixed(1)} m/s` : d.state.toUpperCase(),
+        severity: (d.state === 'airborne' ? (d.speed > 20 ? 'high' : 'medium') : 'nominal') as Severity,
+        time: `${Math.round(d.heading)}°`,
+        source: 'UAS',
+        onClick: () => {
+          setSelectedEntity({ type: 'drone', data: d })
+          setPanelVisible('entity', true)
+        },
       }))
     : activeView === 'cyber'
     ? cyberGraph.edges.map(e => ({
@@ -119,6 +131,8 @@ export function EventFeedPanel() {
           <PanelHeader title={
             activeView === 'global'
               ? `LIVE EVENT FEED · ${items.length}`
+              : activeView === 'city'
+              ? `UAS TRACKER · ${items.length}`
               : activeView === 'space'
               ? 'TRACKED OBJECTS'
               : 'LIVE EVENT FEED'

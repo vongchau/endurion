@@ -3,7 +3,8 @@ import { useHUDStore } from '../../store'
 import type { CityLayer } from '../../types'
 
 const LAYERS: { key: CityLayer; label: string; color: string }[] = [
-  { key: 'uas', label: 'UAS', color: '#7b2fff' },
+  { key: 'uas',   label: 'UAS',   color: '#7b2fff' },
+  { key: 'zones', label: 'ZONES', color: '#ffaa00' },
 ]
 
 export function CityLayerToggles() {

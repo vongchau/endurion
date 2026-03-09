@@ -76,11 +76,14 @@ function VesselMarker({ candidate }: { candidate: MilitaryCandidate }) {
 
 export function GlobalMarkers() {
   const globalLayers = useHUDStore((s) => s.globalLayers)
+  const mapZoom   = useHUDStore((s) => s.mapZoom)
+  const mapBounds = useHUDStore((s) => s.mapBounds)
   const { data: incidents } = useGlobalData()
   const { data: flights } = useFlights()
   const { density, military } = useVessels()
-  const { vessels } = useAllVessels()
+  const { vessels } = useAllVessels(mapZoom, mapBounds)
   const showMaritime = globalLayers.has('maritime')
+  const showVessels  = showMaritime && mapZoom >= 4
 
   const visibleIncidents = incidents.filter((i) => globalLayers.has(incidentToLayer(i)))
   const showFlights = globalLayers.has('military')
@@ -94,7 +97,7 @@ export function GlobalMarkers() {
         <FlightMarker key={flight.id} flight={flight} />
       ))}
       {showMaritime && <VesselDensityLayer zones={density} />}
-      {showMaritime && <VesselLayer vessels={vessels} />}
+      {showVessels && <VesselLayer vessels={vessels} />}
       {showMaritime && military.map((c) => (
         <VesselMarker key={c.mmsi} candidate={c} />
       ))}

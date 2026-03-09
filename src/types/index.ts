@@ -31,7 +31,7 @@ export interface MilitaryFlight {
 
 export type GlobalLayer = 'conflict' | 'disaster' | 'military' | 'maritime'
 
-export type CityLayer = 'uas'
+export type CityLayer = 'uas' | 'zones'
 
 export interface AISVessel {
   mmsi: number
@@ -39,9 +39,17 @@ export interface AISVessel {
   lat: number
   lng: number
   speed: number       // knots
-  heading: number     // degrees 0–360
+  course: number      // COG degrees 0–360
+  heading: number     // true heading degrees 0–360
   shipType: number    // AIS numeric ship type
   shipTypeName: string
+  destination: string
+  callSign: string
+  imo: number
+  draught: number
+  eta: string
+  lengthOverall: number  // dimensionA + dimensionB
+  beam: number           // dimensionC + dimensionD
   timestamp: number
 }
 
@@ -50,6 +58,7 @@ export interface VesselDensityZone {
   lng: number
   intensity: number   // 0.0–1.0 log-normalized
   vesselCount: number
+  deltaPct: number    // % change from previous window
 }
 
 export interface MilitaryCandidate {
@@ -59,6 +68,7 @@ export interface MilitaryCandidate {
   lng: number
   heading: number
   speed: number
+  course: number
   shipType: number
   reason: string      // human-readable detection reason
   timestamp: number
@@ -70,6 +80,7 @@ export interface Chokepoint {
   lng: number
   radius: number      // degrees, search radius
   vesselCount: number // live count from aisCache
+  vesselTypes: Record<string, number>  // ship type breakdown
 }
 
 export interface AISDisruption {
@@ -81,6 +92,7 @@ export interface AISDisruption {
   severity: 'low' | 'elevated' | 'high'
   vesselCount: number
   description: string
+  region: string
 }
 
 export interface DroneFlight {
@@ -101,16 +113,6 @@ export interface MapBounds {
   minLat: number
   maxLng: number
   maxLat: number
-}
-
-export interface CityPOI {
-  id: string
-  lat: number
-  lng: number
-  district: string
-  type: 'surveillance' | 'incident' | 'asset'
-  label: string
-  activityLevel: number // 0-100
 }
 
 export interface CyberNode {
@@ -148,8 +150,8 @@ export interface Satellite {
 }
 
 export interface Entity {
-  type: 'incident' | 'poi' | 'node' | 'satellite' | 'vessel' | 'drone'
-  data: GlobalIncident | CityPOI | CyberNode | Satellite | AISVessel | DroneFlight
+  type: 'incident' | 'node' | 'satellite' | 'vessel' | 'drone'
+  data: GlobalIncident | CyberNode | Satellite | AISVessel | DroneFlight
 }
 
 export interface PanelState {
@@ -157,34 +159,4 @@ export interface PanelState {
   entity: boolean
   statusBar: boolean
   timeline: boolean
-}
-
-export interface CityProfile {
-  id: string
-  name: string
-  state: string
-  ori: string       // FBI Originating Agency Identifier, e.g. 'NY0303000'
-  lat: number
-  lng: number
-  zoom: number
-}
-
-export interface CrimeProfileResponse {
-  city: string
-  ori: string
-  fetchedAt: string
-  trend: Array<{ year: number; count: number }>
-  offenses: Array<{ offense: string; count: number }>
-  weapons: Array<{ weapon: string; count: number }>
-  offenderDemo: {
-    age: Record<string, number>
-    race: Record<string, number>
-    sex: Record<string, number>
-  }
-  victimDemo: {
-    age: Record<string, number>
-    race: Record<string, number>
-    sex: Record<string, number>
-  }
-  timeOfDay: Array<{ hour: number; count: number }>
 }

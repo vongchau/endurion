@@ -6,7 +6,6 @@ import type { AISVessel, DroneFlight } from '../../types'
 import { useHUDStore } from '../../store'
 import { GlobalMarkers } from '../../views/global/GlobalMarkers'
 import { CityMarkers } from '../../views/city/CityMarkers'
-import { CityPins } from '../../views/city/CityPins'
 import { CyberLayer } from '../../views/cyber/CyberLayer'
 import { SpaceLayer } from '../../views/space/SpaceLayer'
 import { mapRef } from '../../mapRef'
@@ -34,15 +33,16 @@ const VIEW_CONFIGS = {
 
 export function MapCanvas() {
   const activeView = useHUDStore((s) => s.activeView)
-  const selectedCity = useHUDStore((s) => s.selectedCity)
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible   = useHUDStore((s) => s.setPanelVisible)
+  const setMapZoom   = useHUDStore((s) => s.setMapZoom)
   const setMapBounds = useHUDStore((s) => s.setMapBounds)
   const config = VIEW_CONFIGS[activeView]
 
   const handleMoveEnd = useCallback((evt: ViewStateChangeEvent) => {
     const map = mapRef.current?.getMap()
     if (!map) return
+    setMapZoom(evt.viewState.zoom)
     const b = map.getBounds()
     if (b) {
       setMapBounds({
@@ -52,7 +52,7 @@ export function MapCanvas() {
         maxLat: b.getNorth(),
       })
     }
-  }, [setMapBounds])
+  }, [setMapZoom, setMapBounds])
 
   const handleMapClick = useCallback((event: MapLayerMouseEvent) => {
     const feature = event.features?.[0]
@@ -85,9 +85,17 @@ export function MapCanvas() {
       lat:          event.lngLat.lat,
       lng:          event.lngLat.lng,
       speed:        Number(p.speed ?? 0),
+      course:       Number(p.course ?? 0),
       heading:      Number(p.heading ?? 0),
       shipType:     Number(p.shipType ?? 0),
       shipTypeName: String(p.shipTypeName ?? ''),
+      destination:  String(p.destination ?? ''),
+      callSign:     String(p.callSign ?? ''),
+      imo:          Number(p.imo ?? 0),
+      draught:      Number(p.draught ?? 0),
+      eta:          String(p.eta ?? ''),
+      lengthOverall: Number(p.lengthOverall ?? 0),
+      beam:         Number(p.beam ?? 0),
       timestamp:    Number(p.timestamp ?? 0),
     }
     setSelectedEntity({ type: 'vessel', data: vessel })
@@ -103,6 +111,8 @@ export function MapCanvas() {
     if (activeView === 'space') {
       map.setFog({ color: 'rgb(2, 4, 8)', 'high-color': 'rgb(0, 0, 20)', 'horizon-blend': 0.01 })
     }
+    // Capture initial zoom & bounds
+    setMapZoom(map.getZoom())
     const b = map.getBounds()
     if (b) {
       setMapBounds({
@@ -112,7 +122,7 @@ export function MapCanvas() {
         maxLat: b.getNorth(),
       })
     }
-  }, [activeView, setMapBounds])
+  }, [activeView, setMapZoom, setMapBounds])
 
   return (
     <div className="absolute inset-0">
@@ -135,7 +145,6 @@ export function MapCanvas() {
         attributionControl={false}
       >
         {activeView === 'global' && <GlobalMarkers />}
-        {activeView === 'city' && !selectedCity && <CityPins mapRef={mapRef} />}
         {activeView === 'city' && <CityMarkers />}
         {activeView === 'cyber' && <CyberLayer />}
         {activeView === 'space' && <SpaceLayer />}

@@ -12,11 +12,13 @@ const LAYERS: { key: GlobalLayer; label: string; color: string }[] = [
 export function LayerToggles() {
   const globalLayers = useHUDStore((s) => s.globalLayers)
   const toggleGlobalLayer = useHUDStore((s) => s.toggleGlobalLayer)
+  const mapZoom = useHUDStore((s) => s.mapZoom)
 
   return (
     <div className="fixed bottom-16 right-4 z-40 flex gap-2">
       {LAYERS.map(({ key, label, color }) => {
         const active = globalLayers.has(key)
+        const needsZoom = key === 'maritime' && active && mapZoom < 4
         return (
           <button
             key={key}
@@ -33,6 +35,9 @@ export function LayerToggles() {
               style={{ backgroundColor: active ? color : '#4a6080' }}
             />
             {label}
+            {needsZoom && (
+              <span className="ml-1 text-[8px] opacity-60">ZOOM IN</span>
+            )}
           </button>
         )
       })}

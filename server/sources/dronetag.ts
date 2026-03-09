@@ -1,6 +1,6 @@
 // server/sources/dronetag.ts
 
-const BASE_URL = 'https://api.dronetag.com/v2/airspace/telemetry'
+const BASE_URL = 'https://api.dronetag.app/v2/airspace/telemetry'
 
 interface GlobalUAResponse {
   operation_id: string
@@ -41,12 +41,14 @@ export async function fetchDronetag(
   apiKey: string,
   minLng: number, minLat: number, maxLng: number, maxLat: number,
 ): Promise<RawDrone[]> {
-  const bbox = `${minLng},${minLat},${maxLng},${maxLat}`
-  const headers = { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' }
+  // Clamp to valid geographic ranges — Mapbox can report bounds outside -180/180 when zoomed out
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+  const bbox = `${clamp(minLng, -180, 180)},${clamp(minLat, -90, 90)},${clamp(maxLng, -180, 180)},${clamp(maxLat, -90, 90)}`
+  const headers = { 'X-Api-Key': apiKey, Accept: 'application/json' }
 
   // Fetch latest positions (lightweight)
   const globalRes = await fetch(
-    `${BASE_URL}/global-ua?bbox=${bbox}&max_age=5`,
+    `${BASE_URL}/global-ua?bbox=${bbox}&max_age=30`,
     { headers },
   )
   if (!globalRes.ok) {

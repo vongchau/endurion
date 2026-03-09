@@ -25,9 +25,10 @@ function connect(apiKey: string): void {
     }))
   })
 
-  ws.addEventListener('message', (event) => {
+  ws.addEventListener('message', async (event) => {
     try {
-      const msg = JSON.parse(event.data as string)
+      const raw = event.data instanceof Blob ? await event.data.text() : String(event.data)
+      const msg = JSON.parse(raw)
       const meta = msg.MetaData
       if (!meta) return
 
@@ -41,6 +42,13 @@ function connect(apiKey: string): void {
 
       let speed = 0, course = 0, heading = 0
       let shipType = 0, name = (meta.ShipName?.trim() ?? '') as string
+      let destination: string | undefined
+      let callSign: string | undefined
+      let imo: number | undefined
+      let draught: number | undefined
+      let eta: string | undefined
+      let dimA: number | undefined, dimB: number | undefined
+      let dimC: number | undefined, dimD: number | undefined
 
       if (msg.MessageType === 'PositionReport' && msg.Message?.PositionReport) {
         const pr = msg.Message.PositionReport
@@ -52,9 +60,25 @@ function connect(apiKey: string): void {
         const sd = msg.Message.ShipStaticData
         shipType = sd.Type ?? 0
         name = sd.ShipName?.trim() ?? name
+        destination = sd.Destination?.trim() || undefined
+        callSign = sd.CallSign?.trim() || undefined
+        imo = sd.ImoNumber ?? undefined
+        draught = sd.MaximumStaticDraught ?? undefined
+        if (sd.Eta) {
+          eta = `${sd.Eta.Month}/${sd.Eta.Day} ${sd.Eta.Hour}:${String(sd.Eta.Minute).padStart(2, '0')}`
+        }
+        if (sd.Dimension) {
+          dimA = sd.Dimension.A ?? 0
+          dimB = sd.Dimension.B ?? 0
+          dimC = sd.Dimension.C ?? 0
+          dimD = sd.Dimension.D ?? 0
+        }
       }
 
-      processVesselMessage(mmsi, lat, lng, shipType, name, speed, course, heading)
+      processVesselMessage(
+        mmsi, lat, lng, shipType, name, speed, course, heading,
+        destination, callSign, imo, draught, eta, dimA, dimB, dimC, dimD,
+      )
     } catch { /* ignore malformed AIS messages */ }
   })
 

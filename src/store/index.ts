@@ -1,6 +1,6 @@
 // src/store/index.ts
 import { create } from 'zustand'
-import type { ViewMode, PanelState, Entity, GlobalLayer, CityLayer, CityProfile, MapBounds } from '../types'
+import type { ViewMode, PanelState, Entity, GlobalLayer, CityLayer, MapBounds } from '../types'
 
 interface HUDStore {
   activeView: ViewMode
@@ -10,8 +10,8 @@ interface HUDStore {
   setPanelVisible: (panel: keyof PanelState, visible: boolean) => void
   selectedEntity: Entity | null
   setSelectedEntity: (entity: Entity | null) => void
-  selectedCity: CityProfile | null
-  setSelectedCity: (city: CityProfile | null) => void
+  mapZoom: number
+  setMapZoom: (zoom: number) => void
   mapBounds: MapBounds | null
   setMapBounds: (bounds: MapBounds) => void
   globalLayers: Set<GlobalLayer>
@@ -39,8 +39,8 @@ export const useHUDStore = create<HUDStore>((set) => ({
     })),
   selectedEntity: null,
   setSelectedEntity: (entity) => set({ selectedEntity: entity }),
-  selectedCity: null,
-  setSelectedCity: (city) => set({ selectedCity: city }),
+  mapZoom: 1.8,
+  setMapZoom: (zoom) => set({ mapZoom: zoom }),
   mapBounds: null,
   setMapBounds: (bounds) => set({ mapBounds: bounds }),
   globalLayers: new Set<GlobalLayer>(['conflict', 'disaster', 'military', 'maritime']),
@@ -51,7 +51,7 @@ export const useHUDStore = create<HUDStore>((set) => ({
       else next.add(layer)
       return { globalLayers: next }
     }),
-  cityLayers: new Set<CityLayer>(['uas']),
+  cityLayers: new Set<CityLayer>(['uas', 'zones']),
   toggleCityLayer: (layer) =>
     set((state) => {
       const next = new Set(state.cityLayers)

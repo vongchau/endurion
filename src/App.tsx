@@ -10,8 +10,6 @@ import { Timeline } from './components/panels/Timeline'
 import { PanelControls } from './components/PanelControls'
 import { LayerToggles } from './views/global/LayerToggles'
 import { ChokepointPanel } from './views/global/ChokepointPanel'
-import { CitySearch } from './views/city/CitySearch'
-import { CrimeProfilePanel } from './views/city/CrimeProfilePanel'
 import { CityLayerToggles } from './views/city/CityLayerToggles'
 import { useHUDStore } from './store'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
@@ -65,7 +63,6 @@ function BootScreen({ onComplete }: { onComplete: () => void }) {
 export default function App() {
   const [booted, setBooted] = useState(false)
   const activeView = useHUDStore((s) => s.activeView)
-  const selectedCity = useHUDStore((s) => s.selectedCity)
   const globalLayers = useHUDStore((s) => s.globalLayers)
   useKeyboardShortcuts()
 
@@ -83,11 +80,7 @@ export default function App() {
       <PanelControls />
       {activeView === 'global' && <LayerToggles />}
       {activeView === 'global' && globalLayers.has('maritime') && <ChokepointPanel />}
-      {activeView === 'city' && <CitySearch mapRef={mapRef} />}
-      {activeView === 'city' && selectedCity && <CityLayerToggles />}
-      <AnimatePresence>
-        {activeView === 'city' && selectedCity && <CrimeProfilePanel key="crime-panel" />}
-      </AnimatePresence>
+      {activeView === 'city' && <CityLayerToggles />}
       <CommandSwitcher />
     </div>
   )

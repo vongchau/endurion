@@ -18,7 +18,8 @@
       "Bash(kill 19373:*)",
       "Bash(npx tsx:*)",
       "Bash(grep:*)",
-      "Bash(firecrawl browser:*)"
+      "Bash(firecrawl browser:*)",
+      "Bash(ln:*)"
     ]
   }
 }
