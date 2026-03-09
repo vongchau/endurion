@@ -19,7 +19,12 @@
       "Bash(npx tsx:*)",
       "Bash(grep:*)",
       "Bash(firecrawl browser:*)",
-      "Bash(ln:*)"
+      "Bash(ln:*)",
+      "Bash(pkill:*)",
+      "Bash(nslookup:*)",
+      "WebSearch",
+      "Bash(jq:*)",
+      "WebFetch(domain:developers.cloudflare.com)"
     ]
   }
 }
