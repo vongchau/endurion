@@ -1,6 +1,8 @@
 // src/views/city/CityMarkers.tsx
 import { Marker, Source, Layer } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
+import { useDrones } from '../../hooks/useDrones'
+import { DroneLayer } from './DroneLayer'
 import { cityPOIs } from '../../data/city-pois'
 import type { CityPOI } from '../../types'
 
@@ -31,6 +33,11 @@ export function CityMarkers() {
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
   const selectedCity = useHUDStore((s) => s.selectedCity)
   if (!selectedCity) return null
+
+  const cityLayers = useHUDStore((s) => s.cityLayers)
+  const mapBounds  = useHUDStore((s) => s.mapBounds)
+  const showUAS    = cityLayers.has('uas')
+  const { drones } = useDrones(showUAS, mapBounds)
 
   return (
     <>
@@ -75,6 +82,8 @@ export function CityMarkers() {
           </button>
         </Marker>
       ))}
+
+      {showUAS && <DroneLayer drones={drones} />}
     </>
   )
 }
