@@ -37,7 +37,7 @@ export const useHUDStore = create<HUDStore>((set) => ({
   setSelectedEntity: (entity) => set({ selectedEntity: entity }),
   selectedCity: null,
   setSelectedCity: (city) => set({ selectedCity: city }),
-  globalLayers: new Set<GlobalLayer>(['conflict', 'disaster', 'military']),
+  globalLayers: new Set<GlobalLayer>(['conflict', 'disaster', 'military', 'maritime']),
   toggleGlobalLayer: (layer) =>
     set((state) => {
       const next = new Set(state.globalLayers)

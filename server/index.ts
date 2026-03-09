@@ -6,6 +6,8 @@ import { getIncidents, getFlights } from './cache'
 import { deduplicateIncidents } from './dedup'
 import { startPoller } from './poller'
 import { crimeRoute } from './routes/crime'
+import { getDensityZones, getMilitaryCandidates, getChokepoints, getDisruptions, getStats } from './aisCache'
+import { startAis, isConnected as aisConnected } from './ais'
 
 const app = new Hono()
 
@@ -17,6 +19,12 @@ app.get('/api/incidents', (c) => c.json(deduplicateIncidents(getIncidents())))
 app.get('/api/flights',   (c) => c.json(getFlights()))
 app.route('/api/crime', crimeRoute)
 
+app.get('/api/vessels/density',     (c) => c.json(getDensityZones()))
+app.get('/api/vessels/military',    (c) => c.json(getMilitaryCandidates()))
+app.get('/api/vessels/chokepoints', (c) => c.json(getChokepoints()))
+app.get('/api/vessels/disruptions', (c) => c.json(getDisruptions()))
+app.get('/api/vessels/stats',       (c) => c.json({ ...getStats(), connected: aisConnected }))
+
 // Start serving immediately — polling runs in background so Vite proxy
 // is never connection-refused on cold start. Cache returns [] until first
 // poll completes (~5-8s), then fills on subsequent 30s cycles.
@@ -25,3 +33,4 @@ serve({ fetch: app.fetch, port: 3001 }, () => {
 })
 
 startPoller().catch((e) => console.error('[poller] startup failed:', e))
+startAis()

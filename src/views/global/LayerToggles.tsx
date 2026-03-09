@@ -6,6 +6,7 @@ const LAYERS: { key: GlobalLayer; label: string; color: string }[] = [
   { key: 'conflict', label: 'CONFLICT', color: '#ff2d2d' },
   { key: 'disaster', label: 'DISASTER', color: '#ffaa00' },
   { key: 'military', label: 'MILITARY', color: '#00d4ff' },
+  { key: 'maritime', label: 'MARITIME', color: '#00ff88' },
 ]
 
 export function LayerToggles() {

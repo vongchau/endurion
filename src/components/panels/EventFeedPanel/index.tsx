@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
 import { useGlobalData } from '../../../hooks/useGlobalData'
 import { useFlights } from '../../../hooks/useFlights'
+import { useDisruptions } from '../../../hooks/useDisruptions'
 import { cityPOIs } from '../../../data/city-pois'
 import { cyberGraph } from '../../../data/cyber-graph'
 import { useSatellites } from '../../../views/space/useSatellites'
@@ -35,6 +36,7 @@ export function EventFeedPanel() {
   const globalLayers = useHUDStore((s) => s.globalLayers)
   const { data: liveIncidents } = useGlobalData()
   const { data: liveFlights } = useFlights()
+  const { disruptions } = useDisruptions()
 
   // Only fetch satellite data when in space view
   const { satellites, loading: satsLoading } = useSatellites()
@@ -60,6 +62,19 @@ export function EventFeedPanel() {
               severity: 'medium' as const,
               time: `${Math.round(f.altitude / 1000)}km`,
               source: 'SKY',
+              onClick: () => {},
+            }))
+          : []),
+        ...(globalLayers.has('maritime')
+          ? disruptions.map((d) => ({
+              id: d.id,
+              label: d.name,
+              sublabel: d.description,
+              severity: (d.severity === 'high' ? 'high'
+                : d.severity === 'elevated' ? 'medium'
+                : 'low') as Severity,
+              time: d.vesselCount > 0 ? `${d.vesselCount}v` : '--',
+              source: 'AIS',
               onClick: () => {},
             }))
           : []),

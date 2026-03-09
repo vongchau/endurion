@@ -62,7 +62,7 @@ describe('selectedCity', () => {
 describe('globalLayers', () => {
   beforeEach(() => {
     useHUDStore.setState({
-      globalLayers: new Set(['conflict', 'disaster', 'military']),
+      globalLayers: new Set(['conflict', 'disaster', 'military', 'maritime']),
     })
   })
 
@@ -82,5 +82,9 @@ describe('globalLayers', () => {
     useHUDStore.getState().toggleGlobalLayer('conflict') // off
     useHUDStore.getState().toggleGlobalLayer('conflict') // on
     expect(useHUDStore.getState().globalLayers.has('conflict')).toBe(true)
+  })
+
+  it("globalLayers includes 'maritime' by default", () => {
+    expect(useHUDStore.getState().globalLayers.has('maritime')).toBe(true)
   })
 })
