@@ -22,8 +22,8 @@
 
 Add these two lines to the existing `.env.local`:
 ```
-CF_API_KEY=LSoToyVJuOb9Temy0qcjRMDH9tos_-MkJZvXu--0
-CF_ACCOUNT_ID=13005af7341639f0919e4f42759002e8
+CF_API_KEY=<your-cloudflare-api-key>
+CF_ACCOUNT_ID=<your-cloudflare-account-id>
 ```
 
 **Step 2: Create the country centroid lookup**
