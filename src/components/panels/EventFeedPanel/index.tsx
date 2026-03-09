@@ -20,6 +20,63 @@ const SEVERITY_COLORS: Record<Severity, string> = {
   nominal: 'text-hud-green border-hud-green/40',
 }
 
+const SCALE_BAR_COLORS = ['#4a608020', '#00d4ff', '#ffaa00', '#ffaa00', '#ff2d2d', '#ff2d2d']
+
+function ScaleBars({ value }: { value: number }) {
+  return (
+    <div className="flex gap-px">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span
+          key={i}
+          className="w-1 h-2.5 rounded-sm"
+          style={{ backgroundColor: i <= value ? SCALE_BAR_COLORS[Math.min(value, 5)] : '#4a608020' }}
+        />
+      ))}
+    </div>
+  )
+}
+
+function SpaceWeatherStrip({ scales, kpIndex }: {
+  scales: { R: { scale: number; text: string }; S: { scale: number; text: string }; G: { scale: number; text: string } } | null
+  kpIndex: { kp: number } | null
+}) {
+  if (!scales && !kpIndex) return null
+  return (
+    <div className="px-3 py-2 border-b border-hud-amber/20 bg-hud-amber/5">
+      <div className="flex items-center gap-1 mb-1.5">
+        <span className="w-1 h-3 bg-hud-amber rounded-full" />
+        <span className="font-mono text-[8px] tracking-[0.2em] text-hud-amber">SPACE WEATHER</span>
+        {scales && (scales.R.scale > 0 || scales.S.scale > 0 || scales.G.scale > 0) && (
+          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-hud-amber animate-pulse" />
+        )}
+      </div>
+      {scales && (
+        <div className="flex gap-3">
+          {(['R', 'S', 'G'] as const).map((key) => {
+            const val = scales[key].scale
+            const color = val >= 4 ? 'text-hud-red' : val >= 2 ? 'text-hud-amber' : val >= 1 ? 'text-hud-cyan' : 'text-hud-green'
+            return (
+              <div key={key} className="flex items-center gap-1">
+                <span className="font-mono text-[9px] text-hud-dim">{key}</span>
+                <ScaleBars value={val} />
+                <span className={`font-mono text-[9px] ${color}`}>{val}</span>
+              </div>
+            )
+          })}
+          {kpIndex && (
+            <div className="flex items-center gap-1 ml-auto">
+              <span className="font-mono text-[9px] text-hud-dim">Kp</span>
+              <span className={`font-mono text-[9px] ${kpIndex.kp >= 5 ? 'text-hud-red' : kpIndex.kp >= 4 ? 'text-hud-amber' : 'text-hud-green'}`}>
+                {kpIndex.kp.toFixed(1)}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PanelHeader({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-2 px-3 py-2 border-b border-hud-cyan/20">
@@ -47,7 +104,7 @@ export function EventFeedPanel() {
 
   // Only fetch satellite data when in space view
   const { satellites, loading: satsLoading } = useSatellites()
-  const { alerts: swAlerts } = useSpaceWeather(activeView === 'space')
+  const { alerts: swAlerts, scales, kpIndex } = useSpaceWeather(activeView === 'space')
 
   const items = activeView === 'global'
     ? [
@@ -152,6 +209,7 @@ export function EventFeedPanel() {
               ? 'TRACKED OBJECTS'
               : 'LIVE EVENT FEED'
           } />
+          {activeView === 'space' && <SpaceWeatherStrip scales={scales} kpIndex={kpIndex} />}
           {activeView === 'space' && satsLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <span className="font-mono text-[10px] text-hud-dim animate-pulse">ACQUIRING SIGNALS...</span>
