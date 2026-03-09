@@ -1,0 +1,256 @@
+// server/aisCache.ts
+import type {
+  AISVessel, VesselDensityZone, MilitaryCandidate, Chokepoint, AISDisruption,
+} from '../src/types'
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const MAX_VESSELS       = 50_000
+const STALE_MS          = 30 * 60 * 1000   // 30 min
+const CANDIDATE_TTL_MS  = 2 * 60 * 60 * 1000
+const DENSITY_WINDOW_MS = 30 * 60 * 1000
+const GAP_THRESHOLD_MS  = 60 * 60 * 1000
+const GRID_SIZE         = 2                 // degrees
+const MAX_ZONES         = 200
+
+const NAVAL_RE = /^(USS|USNS|HMS|HMAS|HMCS|INS|JS|ROKS|TCG|FS|BNS|RFS|CGC|PNS|KRI|ITS|SNS)\b/i
+
+export const CHOKEPOINT_DEFS = [
+  { name: 'Strait of Hormuz',     lat: 26.5, lng: 56.5,  radius: 2   },
+  { name: 'Suez Canal',           lat: 30.0, lng: 32.5,  radius: 1   },
+  { name: 'Strait of Malacca',    lat:  2.5, lng: 101.5, radius: 2   },
+  { name: 'Bab el-Mandeb',        lat: 12.5, lng: 43.5,  radius: 1.5 },
+  { name: 'Panama Canal',         lat:  9.0, lng: -79.5, radius: 1   },
+  { name: 'Taiwan Strait',        lat: 24.5, lng: 119.5, radius: 2   },
+  { name: 'South China Sea',      lat: 15.0, lng: 115.0, radius: 5   },
+  { name: 'Black Sea',            lat: 43.5, lng: 34.0,  radius: 3   },
+  { name: 'Gibraltar',            lat: 35.9, lng: -5.5,  radius: 1   },
+  { name: 'English Channel',      lat: 50.5, lng:  1.0,  radius: 1.5 },
+  { name: 'Dardanelles',          lat: 40.2, lng: 26.4,  radius: 0.5 },
+  { name: 'Mozambique Channel',   lat: -17.0, lng: 42.0, radius: 3   },
+]
+
+// ── In-memory stores ─────────────────────────────────────────────────────────
+let vesselCache        = new Map<number, AISVessel>()
+let vesselHistory      = new Map<number, number[]>()   // mmsi → [timestamps]
+let densityGrid        = new Map<string, Set<number>>() // gridKey → mmsi set
+let candidateStore     = new Map<number, MilitaryCandidate>()
+let messageCount       = 0
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+export function getShipTypeName(type: number): string {
+  if (type === 35 || type === 55) return 'Military'
+  if (type >= 70 && type <= 79) return 'Cargo'
+  if (type >= 80 && type <= 89) return 'Tanker'
+  if (type >= 60 && type <= 69) return 'Passenger'
+  if (type >= 40 && type <= 49) return 'High Speed'
+  if (type >= 50 && type <= 59) return 'Special Craft'
+  if (type >= 30 && type <= 39) return 'Fishing'
+  if (type === 0) return 'Unknown'
+  return 'Other'
+}
+
+function gridKey(lat: number, lng: number): string {
+  return `${Math.floor(lat / GRID_SIZE) * GRID_SIZE},${Math.floor(lng / GRID_SIZE) * GRID_SIZE}`
+}
+
+export function isLikelyMilitary(
+  mmsi: number, shipType: number, name: string,
+): { isMilitary: boolean; reason: string } {
+  if (shipType === 35 || shipType === 55)
+    return { isMilitary: true, reason: `Ship type ${shipType} (military)` }
+  if (shipType >= 50 && shipType <= 59)
+    return { isMilitary: true, reason: `Ship type ${shipType} (special craft)` }
+  if (name && NAVAL_RE.test(name))
+    return { isMilitary: true, reason: `Naval prefix: ${name}` }
+  const s = String(mmsi)
+  if (s.length >= 9) {
+    const suffix = s.slice(3)
+    if (suffix.startsWith('00') || suffix.startsWith('99'))
+      return { isMilitary: true, reason: `MMSI pattern: ${mmsi}` }
+  }
+  return { isMilitary: false, reason: '' }
+}
+
+// ── Core processing ───────────────────────────────────────────────────────────
+export function processVesselMessage(
+  mmsi: number, lat: number, lng: number, shipType: number,
+  name: string, speed: number, course: number, heading: number,
+): void {
+  const now = Date.now()
+  const existing = vesselCache.get(mmsi)
+
+  const vessel: AISVessel = {
+    mmsi, lat, lng, speed, heading, shipType,
+    shipTypeName: getShipTypeName(shipType),
+    name: name || existing?.name || '',
+    timestamp: now,
+  }
+  vesselCache.set(mmsi, vessel)
+  messageCount++
+
+  // Density grid
+  const key = gridKey(lat, lng)
+  if (!densityGrid.has(key)) densityGrid.set(key, new Set())
+  densityGrid.get(key)!.add(mmsi)
+
+  // Vessel history for dark-ship detection
+  const hist = vesselHistory.get(mmsi) ?? []
+  hist.push(now)
+  if (hist.length > 10) hist.shift()
+  vesselHistory.set(mmsi, hist)
+
+  // Military candidate
+  const { isMilitary, reason } = isLikelyMilitary(mmsi, shipType, name)
+  if (isMilitary) {
+    candidateStore.set(mmsi, { mmsi, name: vessel.name, lat, lng, heading, speed, shipType, reason, timestamp: now })
+  }
+
+  // Evict oldest when at capacity
+  if (vesselCache.size > MAX_VESSELS) {
+    let oldestMmsi = 0, oldestTime = Infinity
+    for (const [m, v] of vesselCache) {
+      if (v.timestamp < oldestTime) { oldestTime = v.timestamp; oldestMmsi = m }
+    }
+    if (oldestMmsi) vesselCache.delete(oldestMmsi)
+  }
+}
+
+// ── Getters (called by routes) ────────────────────────────────────────────────
+export function getDensityZones(): VesselDensityZone[] {
+  const cells = Array.from(densityGrid.entries())
+    .map(([key, mmsiSet]) => {
+      // Filter out stale vessels from the set
+      const cutoff = Date.now() - DENSITY_WINDOW_MS
+      for (const mmsi of mmsiSet) {
+        const v = vesselCache.get(mmsi)
+        if (!v || v.timestamp < cutoff) mmsiSet.delete(mmsi)
+      }
+      const [latStr, lngStr] = key.split(',')
+      return {
+        lat: parseFloat(latStr) + GRID_SIZE / 2,
+        lng: parseFloat(lngStr) + GRID_SIZE / 2,
+        vesselCount: mmsiSet.size,
+      }
+    })
+    .filter(c => c.vesselCount >= 2)
+
+  if (cells.length === 0) return []
+
+  const max = Math.max(...cells.map(c => c.vesselCount))
+  const min = Math.min(...cells.map(c => c.vesselCount))
+  const logMax = Math.log(max + 1)
+  const logMin = Math.log(min + 1)
+
+  return cells
+    .map(c => ({
+      lat: c.lat,
+      lng: c.lng,
+      vesselCount: c.vesselCount,
+      intensity: logMax > logMin
+        ? 0.2 + 0.8 * (Math.log(c.vesselCount + 1) - logMin) / (logMax - logMin)
+        : 0.5,
+    }))
+    .sort((a, b) => b.intensity - a.intensity)
+    .slice(0, MAX_ZONES)
+}
+
+export function getMilitaryCandidates(): MilitaryCandidate[] {
+  const now = Date.now()
+  return Array.from(candidateStore.values())
+    .filter(c => now - c.timestamp < CANDIDATE_TTL_MS)
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 500)
+}
+
+export function getChokepoints(): Chokepoint[] {
+  return CHOKEPOINT_DEFS.map(cp => {
+    let count = 0
+    for (const v of vesselCache.values()) {
+      const dist = Math.sqrt(Math.pow(v.lat - cp.lat, 2) + Math.pow(v.lng - cp.lng, 2))
+      if (dist <= cp.radius) count++
+    }
+    return { name: cp.name, lat: cp.lat, lng: cp.lng, radius: cp.radius, vesselCount: count }
+  })
+}
+
+export function getDisruptions(): AISDisruption[] {
+  const disruptions: AISDisruption[] = []
+  const now = Date.now()
+
+  // Chokepoint congestion
+  for (const cp of CHOKEPOINT_DEFS) {
+    let count = 0
+    for (const v of vesselCache.values()) {
+      const dist = Math.sqrt(Math.pow(v.lat - cp.lat, 2) + Math.pow(v.lng - cp.lng, 2))
+      if (dist <= cp.radius) count++
+    }
+    if (count < 3) continue
+    const normalTraffic = cp.radius * 10
+    const severity: AISDisruption['severity'] =
+      count > normalTraffic * 1.5 ? 'high' : count > normalTraffic ? 'elevated' : 'low'
+    disruptions.push({
+      id: `chokepoint-${cp.name.toLowerCase().replace(/\s+/g, '-')}`,
+      name: cp.name,
+      type: 'chokepoint_congestion',
+      lat: cp.lat, lng: cp.lng, severity, vesselCount: count,
+      description: `${count} vessels in ${cp.name}`,
+    })
+  }
+
+  // Dark ship — AIS gap spike
+  let darkCount = 0
+  for (const hist of vesselHistory.values()) {
+    if (hist.length >= 2) {
+      const last = hist[hist.length - 1]
+      const prev = hist[hist.length - 2]
+      if (last - prev > GAP_THRESHOLD_MS && now - last < 10 * 60 * 1000) darkCount++
+    }
+  }
+  if (darkCount >= 1) {
+    disruptions.push({
+      id: 'global-dark-ship',
+      name: 'AIS Gap Spike',
+      type: 'dark_ship',
+      lat: 0, lng: 0,
+      severity: darkCount > 20 ? 'high' : darkCount > 10 ? 'elevated' : 'low',
+      vesselCount: darkCount,
+      description: `${darkCount} vessel${darkCount > 1 ? 's' : ''} reappeared after AIS silence >1h`,
+    })
+  }
+
+  return disruptions
+}
+
+export function getStats() {
+  return { vessels: vesselCache.size, messages: messageCount }
+}
+
+export function cleanupStaleVessels(): void {
+  const cutoff = Date.now() - STALE_MS
+  let removed = 0
+  for (const [mmsi, v] of vesselCache) {
+    if (v.timestamp < cutoff) { vesselCache.delete(mmsi); removed++ }
+  }
+  // Prune empty density cells
+  for (const [key, mmsiSet] of densityGrid) {
+    for (const mmsi of mmsiSet) {
+      if (!vesselCache.has(mmsi)) mmsiSet.delete(mmsi)
+    }
+    if (mmsiSet.size === 0) densityGrid.delete(key)
+  }
+  // Prune stale candidates
+  const candCutoff = Date.now() - CANDIDATE_TTL_MS
+  for (const [mmsi, c] of candidateStore) {
+    if (c.timestamp < candCutoff) candidateStore.delete(mmsi)
+  }
+  if (removed > 0) console.log(`[aisCache] cleaned ${removed} stale vessels, ${vesselCache.size} remaining`)
+}
+
+// ── Test helper — resets all state ───────────────────────────────────────────
+export function _resetForTest(): void {
+  vesselCache = new Map()
+  vesselHistory = new Map()
+  densityGrid = new Map()
+  candidateStore = new Map()
+  messageCount = 0
+}
