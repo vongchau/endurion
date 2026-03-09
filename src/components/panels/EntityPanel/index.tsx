@@ -42,15 +42,36 @@ function IncidentDetail({ data }: { data: GlobalIncident }) {
 
 function NodeDetail({ data }: { data: CyberNode }) {
   const scoreColor = data.threatScore > 80 ? 'text-hud-red' : data.threatScore > 60 ? 'text-hud-amber' : 'text-hud-green'
+  const typeBadge = data.type === 'actor' ? SEVERITY_BG.critical
+    : data.type === 'asset' ? SEVERITY_BG.nominal
+    : data.type === 'cluster' ? SEVERITY_BG.medium
+    : SEVERITY_BG.high
+
   return (
     <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${typeBadge}`}>
+        {data.type.toUpperCase()} — {data.label}
+      </div>
       <DataRow label="NODE" value={data.label} />
       <DataRow label="TYPE" value={data.type.toUpperCase()} />
+      {data.country && <DataRow label="COUNTRY" value={data.country.toUpperCase()} />}
+      {data.category && <DataRow label="CATEGORY" value={data.category.toUpperCase()} />}
+      {data.targetIndustry && <DataRow label="INDUSTRY" value={data.targetIndustry.toUpperCase()} />}
+      {data.eventCount !== undefined && <DataRow label="EVENTS" value={data.eventCount} />}
       <DataRow label="LAT/LNG" value={`${data.lat.toFixed(2)}, ${data.lng.toFixed(2)}`} />
       <div className="flex justify-between items-center py-1.5 border-b border-hud-dim/10">
         <span className="font-mono text-[10px] text-hud-dim tracking-wider">THREAT SCORE</span>
         <span className={`font-mono text-xs ${scoreColor}`}>{data.threatScore}/100</span>
       </div>
+      {data.tags && data.tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {data.tags.map(tag => (
+            <span key={tag} className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-hud-purple/10 text-hud-purple border border-hud-purple/20">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
