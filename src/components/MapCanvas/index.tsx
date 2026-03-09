@@ -2,7 +2,7 @@
 import { useCallback } from 'react'
 import Map from 'react-map-gl/mapbox'
 import type { MapLayerMouseEvent, ViewStateChangeEvent } from 'react-map-gl/mapbox'
-import type { AISVessel } from '../../types'
+import type { AISVessel, DroneFlight } from '../../types'
 import { useHUDStore } from '../../store'
 import { GlobalMarkers } from '../../views/global/GlobalMarkers'
 import { CityMarkers } from '../../views/city/CityMarkers'
@@ -56,7 +56,28 @@ export function MapCanvas() {
 
   const handleMapClick = useCallback((event: MapLayerMouseEvent) => {
     const feature = event.features?.[0]
-    if (!feature || feature.layer?.id !== 'vessel-points') return
+    if (!feature) return
+
+    if (feature.layer?.id === 'drone-points') {
+      const p = feature.properties as Record<string, unknown>
+      const drone: DroneFlight = {
+        id:            String(p.id ?? ''),
+        sensorId:      String(p.sensorId ?? ''),
+        lat:           event.lngLat.lat,
+        lng:           event.lngLat.lng,
+        altitude:      Number(p.altitude ?? 0),
+        speed:         Number(p.speed ?? 0),
+        verticalSpeed: Number(p.verticalSpeed ?? 0),
+        heading:       Number(p.heading ?? 0),
+        state:         String(p.state ?? 'unknown'),
+        timestamp:     Number(p.timestamp ?? 0),
+      }
+      setSelectedEntity({ type: 'drone', data: drone })
+      setPanelVisible('entity', true)
+      return
+    }
+
+    if (feature.layer?.id !== 'vessel-points') return
     const p = feature.properties as Record<string, unknown>
     const vessel: AISVessel = {
       mmsi:         Number(p.mmsi),
@@ -104,7 +125,11 @@ export function MapCanvas() {
         onLoad={handleMapLoad}
         onMoveEnd={handleMoveEnd}
         onClick={handleMapClick}
-        interactiveLayerIds={activeView === 'global' ? ['vessel-points'] : []}
+        interactiveLayerIds={
+          activeView === 'global' ? ['vessel-points'] :
+          activeView === 'city' ? ['drone-points'] :
+          []
+        }
         projection={activeView === 'global' || activeView === 'space' ? 'globe' : 'mercator'}
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
