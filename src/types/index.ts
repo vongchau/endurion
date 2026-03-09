@@ -126,8 +126,8 @@ export interface Satellite {
 }
 
 export interface Entity {
-  type: 'incident' | 'poi' | 'node' | 'satellite'
-  data: GlobalIncident | CityPOI | CyberNode | Satellite
+  type: 'incident' | 'poi' | 'node' | 'satellite' | 'vessel'
+  data: GlobalIncident | CityPOI | CyberNode | Satellite | AISVessel
 }
 
 export interface PanelState {
