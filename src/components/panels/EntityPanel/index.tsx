@@ -1,7 +1,7 @@
 // src/components/panels/EntityPanel/index.tsx
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
-import type { GlobalIncident, CityPOI, CyberNode, Satellite, Severity } from '../../../types'
+import type { GlobalIncident, CityPOI, CyberNode, Satellite, AISVessel, Severity } from '../../../types'
 
 const SEVERITY_BG: Record<Severity, string> = {
   critical: 'bg-hud-red/10 text-hud-red border-hud-red/30',
@@ -92,6 +92,30 @@ function SatelliteDetail({ data }: { data: Satellite }) {
   )
 }
 
+function VesselDetail({ data }: { data: AISVessel }) {
+  const isMilitary = data.shipType === 35 || data.shipType === 55
+  const badge = isMilitary ? SEVERITY_BG.high : SEVERITY_BG.nominal
+  const badgeLabel = isMilitary ? 'MILITARY' : data.shipTypeName.toUpperCase()
+  const speedColor = data.speed > 20 ? 'text-hud-red' : data.speed > 10 ? 'text-hud-amber' : 'text-hud-green'
+
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${badge}`}>
+        {badgeLabel} — MMSI {data.mmsi}
+      </div>
+      <DataRow label="NAME"      value={data.name || '—'} />
+      <DataRow label="TYPE"      value={`${data.shipTypeName} (${data.shipType})`} />
+      <DataRow label="LAT/LNG"   value={`${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`} />
+      <DataRow label="HEADING"   value={`${data.heading}°`} />
+      <div className="flex justify-between items-start py-1.5 border-b border-hud-dim/10">
+        <span className="font-mono text-[10px] text-hud-dim tracking-wider">SPEED</span>
+        <span className={`font-mono text-xs ${speedColor}`}>{data.speed.toFixed(1)} kn</span>
+      </div>
+      <DataRow label="LAST SEEN" value={new Date(data.timestamp).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />
+    </div>
+  )
+}
+
 export function EntityPanel() {
   const panels = useHUDStore((s) => s.panels)
   const selectedEntity = useHUDStore((s) => s.selectedEntity)
@@ -128,6 +152,7 @@ export function EntityPanel() {
               {selectedEntity.type === 'poi' && <POIDetail data={selectedEntity.data as CityPOI} />}
               {selectedEntity.type === 'node' && <NodeDetail data={selectedEntity.data as CyberNode} />}
               {selectedEntity.type === 'satellite' && <SatelliteDetail data={selectedEntity.data as Satellite} />}
+              {selectedEntity.type === 'vessel' && <VesselDetail data={selectedEntity.data as AISVessel} />}
             </div>
           )}
         </motion.div>
