@@ -1,7 +1,7 @@
 // src/components/MapCanvas/index.tsx
 import { useCallback } from 'react'
 import Map from 'react-map-gl/mapbox'
-import type { MapLayerMouseEvent } from 'react-map-gl/mapbox'
+import type { MapLayerMouseEvent, ViewStateChangeEvent } from 'react-map-gl/mapbox'
 import type { AISVessel } from '../../types'
 import { useHUDStore } from '../../store'
 import { GlobalMarkers } from '../../views/global/GlobalMarkers'
@@ -37,7 +37,22 @@ export function MapCanvas() {
   const selectedCity = useHUDStore((s) => s.selectedCity)
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible   = useHUDStore((s) => s.setPanelVisible)
+  const setMapBounds = useHUDStore((s) => s.setMapBounds)
   const config = VIEW_CONFIGS[activeView]
+
+  const handleMoveEnd = useCallback((evt: ViewStateChangeEvent) => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    const b = map.getBounds()
+    if (b) {
+      setMapBounds({
+        minLng: b.getWest(),
+        minLat: b.getSouth(),
+        maxLng: b.getEast(),
+        maxLat: b.getNorth(),
+      })
+    }
+  }, [setMapBounds])
 
   const handleMapClick = useCallback((event: MapLayerMouseEvent) => {
     const feature = event.features?.[0]
@@ -67,7 +82,16 @@ export function MapCanvas() {
     if (activeView === 'space') {
       map.setFog({ color: 'rgb(2, 4, 8)', 'high-color': 'rgb(0, 0, 20)', 'horizon-blend': 0.01 })
     }
-  }, [activeView])
+    const b = map.getBounds()
+    if (b) {
+      setMapBounds({
+        minLng: b.getWest(),
+        minLat: b.getSouth(),
+        maxLng: b.getEast(),
+        maxLat: b.getNorth(),
+      })
+    }
+  }, [activeView, setMapBounds])
 
   return (
     <div className="absolute inset-0">
@@ -78,6 +102,7 @@ export function MapCanvas() {
         mapStyle={config.mapStyle}
         initialViewState={config.initialViewState}
         onLoad={handleMapLoad}
+        onMoveEnd={handleMoveEnd}
         onClick={handleMapClick}
         interactiveLayerIds={activeView === 'global' ? ['vessel-points'] : []}
         projection={activeView === 'global' || activeView === 'space' ? 'globe' : 'mercator'}

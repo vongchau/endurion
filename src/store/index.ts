@@ -1,6 +1,6 @@
 // src/store/index.ts
 import { create } from 'zustand'
-import type { ViewMode, PanelState, Entity, GlobalLayer, CityProfile } from '../types'
+import type { ViewMode, PanelState, Entity, GlobalLayer, CityLayer, CityProfile, MapBounds } from '../types'
 
 interface HUDStore {
   activeView: ViewMode
@@ -12,8 +12,12 @@ interface HUDStore {
   setSelectedEntity: (entity: Entity | null) => void
   selectedCity: CityProfile | null
   setSelectedCity: (city: CityProfile | null) => void
+  mapBounds: MapBounds | null
+  setMapBounds: (bounds: MapBounds) => void
   globalLayers: Set<GlobalLayer>
   toggleGlobalLayer: (layer: GlobalLayer) => void
+  cityLayers: Set<CityLayer>
+  toggleCityLayer: (layer: CityLayer) => void
 }
 
 export const useHUDStore = create<HUDStore>((set) => ({
@@ -37,6 +41,8 @@ export const useHUDStore = create<HUDStore>((set) => ({
   setSelectedEntity: (entity) => set({ selectedEntity: entity }),
   selectedCity: null,
   setSelectedCity: (city) => set({ selectedCity: city }),
+  mapBounds: null,
+  setMapBounds: (bounds) => set({ mapBounds: bounds }),
   globalLayers: new Set<GlobalLayer>(['conflict', 'disaster', 'military', 'maritime']),
   toggleGlobalLayer: (layer) =>
     set((state) => {
@@ -44,5 +50,13 @@ export const useHUDStore = create<HUDStore>((set) => ({
       if (next.has(layer)) next.delete(layer)
       else next.add(layer)
       return { globalLayers: next }
+    }),
+  cityLayers: new Set<CityLayer>(['uas']),
+  toggleCityLayer: (layer) =>
+    set((state) => {
+      const next = new Set(state.cityLayers)
+      if (next.has(layer)) next.delete(layer)
+      else next.add(layer)
+      return { cityLayers: next }
     }),
 }))
