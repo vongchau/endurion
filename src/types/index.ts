@@ -31,6 +31,8 @@ export interface MilitaryFlight {
 
 export type GlobalLayer = 'conflict' | 'disaster' | 'military' | 'maritime'
 
+export type CityLayer = 'uas'
+
 export interface AISVessel {
   mmsi: number
   name: string
@@ -81,6 +83,26 @@ export interface AISDisruption {
   description: string
 }
 
+export interface DroneFlight {
+  id: string              // operation_id
+  sensorId: string
+  lat: number
+  lng: number
+  altitude: number        // meters MSL
+  speed: number           // m/s horizontal
+  verticalSpeed: number   // m/s
+  heading: number         // degrees 0-360
+  state: string           // 'grounded' | 'airborne' | etc.
+  timestamp: number
+}
+
+export interface MapBounds {
+  minLng: number
+  minLat: number
+  maxLng: number
+  maxLat: number
+}
+
 export interface CityPOI {
   id: string
   lat: number
@@ -126,8 +148,8 @@ export interface Satellite {
 }
 
 export interface Entity {
-  type: 'incident' | 'poi' | 'node' | 'satellite' | 'vessel'
-  data: GlobalIncident | CityPOI | CyberNode | Satellite | AISVessel
+  type: 'incident' | 'poi' | 'node' | 'satellite' | 'vessel' | 'drone'
+  data: GlobalIncident | CityPOI | CyberNode | Satellite | AISVessel | DroneFlight
 }
 
 export interface PanelState {
