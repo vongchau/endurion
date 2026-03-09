@@ -9,6 +9,7 @@ import {
   isLikelyMilitary,
   cleanupStaleVessels,
   _resetForTest,
+  getAllVessels,
 } from './aisCache'
 
 beforeEach(() => { _resetForTest() })
@@ -49,6 +50,14 @@ describe('processVesselMessage', () => {
   it('adds military vessel to candidates', () => {
     processVesselMessage(111000001, 26.5, 56.5, 35, 'WARSHIP', 15, 180, 180)
     expect(getMilitaryCandidates().some(c => c.mmsi === 111000001)).toBe(true)
+  })
+
+  it('getAllVessels returns all processed vessels', () => {
+    processVesselMessage(1, 10, 20, 70, 'CARGO A', 12, 90, 90)
+    processVesselMessage(2, 11, 21, 80, 'TANKER B', 8, 45, 45)
+    const all = getAllVessels()
+    expect(all).toHaveLength(2)
+    expect(all.some(v => v.mmsi === 1)).toBe(true)
   })
 })
 

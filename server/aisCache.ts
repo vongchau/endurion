@@ -225,6 +225,12 @@ export function getStats() {
   return { vessels: vesselCache.size, messages: messageCount }
 }
 
+export function getAllVessels(): AISVessel[] {
+  return Array.from(vesselCache.values())
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 5_000)
+}
+
 export function cleanupStaleVessels(): void {
   const cutoff = Date.now() - STALE_MS
   let removed = 0
