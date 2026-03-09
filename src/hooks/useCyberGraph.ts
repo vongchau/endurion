@@ -2,12 +2,13 @@
 import { useState, useEffect } from 'react'
 import type { CyberGraph } from '../types'
 
-export function useCyberGraph() {
+export function useCyberGraph(enabled = true) {
   const [graph, setGraph] = useState<CyberGraph | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!enabled) return
     let active = true
 
     const fetchGraph = async () => {
@@ -30,7 +31,7 @@ export function useCyberGraph() {
     fetchGraph()
     const id = setInterval(fetchGraph, 30_000)
     return () => { active = false; clearInterval(id) }
-  }, [])
+  }, [enabled])
 
   return { graph, loading, error }
 }

@@ -101,7 +101,7 @@ export function EventFeedPanel() {
   const mapBounds  = useHUDStore((s) => s.mapBounds)
   const showUAS    = activeView === 'city' && cityLayers.has('uas')
   const { drones } = useDrones(showUAS, mapBounds)
-  const { graph: cyberGraph } = useCyberGraph()
+  const { graph: cyberGraph } = useCyberGraph(activeView === 'cyber')
 
   // Only fetch satellite data when in space view
   const { satellites, loading: satsLoading } = useSatellites()

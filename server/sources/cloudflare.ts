@@ -16,11 +16,6 @@ export interface CloudflareThreatEvent {
   accountability: string
 }
 
-export interface CloudflareAttacker {
-  id: string
-  name: string
-}
-
 export async function fetchThreatEvents(
   accountId: string,
   apiKey: string
@@ -39,20 +34,3 @@ export async function fetchThreatEvents(
   return Array.isArray(json) ? json : (json.result ?? json.data ?? [])
 }
 
-export async function fetchAttackers(
-  accountId: string,
-  apiKey: string
-): Promise<CloudflareAttacker[]> {
-  const url = `${BASE}/${accountId}/cloudforce-one/events/attackers`
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-  })
-  if (!res.ok) {
-    throw new Error(`Cloudflare attackers API ${res.status}: ${await res.text()}`)
-  }
-  const json = await res.json()
-  return Array.isArray(json) ? json : (json.result ?? json.data ?? [])
-}

@@ -29,13 +29,22 @@ function spreadAroundPoint(
   ]
 }
 
-function deriveThreatScore(event: { category?: string; tags?: string[] }): number {
+function simpleHash(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash)
+}
+
+function deriveThreatScore(event: { id?: string; category?: string; tags?: string[] }): number {
   const cat = (event.category ?? '').toLowerCase()
+  const jitter = simpleHash(event.id ?? cat) % 20
   const highThreat = ['ransomware', 'apt', 'zero-day', 'exploit', 'backdoor']
   const medThreat = ['phishing', 'malware', 'c2', 'credential']
-  if (highThreat.some(t => cat.includes(t))) return 80 + Math.floor(Math.random() * 20)
-  if (medThreat.some(t => cat.includes(t))) return 60 + Math.floor(Math.random() * 20)
-  return 30 + Math.floor(Math.random() * 30)
+  if (highThreat.some(t => cat.includes(t))) return 80 + jitter
+  if (medThreat.some(t => cat.includes(t))) return 60 + jitter
+  return 30 + (jitter % 30)
 }
 
 function buildGraph(events: Awaited<ReturnType<typeof fetchThreatEvents>>): CyberGraph {
@@ -90,9 +99,12 @@ function buildGraph(events: Awaited<ReturnType<typeof fetchThreatEvents>>): Cybe
 
     // Burst nodes for each event
     evts.forEach((evt) => {
+      const h = simpleHash(evt.id)
+      const angle = ((h % 360) * Math.PI) / 180
+      const dist = 0.2 + (((h >> 8) % 100) / 100) * 0.3
       const offset: [number, number] = [
-        pos[0] + (Math.random() - 0.5) * 1.0,
-        pos[1] + (Math.random() - 0.5) * 1.0,
+        pos[0] + dist * Math.cos(angle),
+        pos[1] + dist * Math.sin(angle),
       ]
       const burstNode: CyberNode = {
         id: `evt-${evt.id}`,
