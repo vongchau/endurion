@@ -44,9 +44,10 @@ function useAnimatedEdges(
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
+      const nodeMap = new Map(graph.nodes.map(n => [n.id, n]))
       graph.edges.forEach((edge, i) => {
-        const src = graph.nodes.find(n => n.id === edge.sourceId)
-        const dst = graph.nodes.find(n => n.id === edge.targetId)
+        const src = nodeMap.get(edge.sourceId)
+        const dst = nodeMap.get(edge.targetId)
         if (!src || !dst) return
 
         const srcPx = getPixel(src.lng, src.lat)
