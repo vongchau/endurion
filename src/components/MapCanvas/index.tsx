@@ -1,6 +1,8 @@
 // src/components/MapCanvas/index.tsx
 import { useCallback } from 'react'
 import Map from 'react-map-gl/mapbox'
+import type { MapLayerMouseEvent } from 'react-map-gl/mapbox'
+import type { AISVessel } from '../../types'
 import { useHUDStore } from '../../store'
 import { GlobalMarkers } from '../../views/global/GlobalMarkers'
 import { CityMarkers } from '../../views/city/CityMarkers'
@@ -33,7 +35,28 @@ const VIEW_CONFIGS = {
 export function MapCanvas() {
   const activeView = useHUDStore((s) => s.activeView)
   const selectedCity = useHUDStore((s) => s.selectedCity)
+  const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
+  const setPanelVisible   = useHUDStore((s) => s.setPanelVisible)
   const config = VIEW_CONFIGS[activeView]
+
+  const handleMapClick = useCallback((event: MapLayerMouseEvent) => {
+    const feature = event.features?.[0]
+    if (!feature || feature.layer?.id !== 'vessel-points') return
+    const p = feature.properties as Record<string, unknown>
+    const vessel: AISVessel = {
+      mmsi:         Number(p.mmsi),
+      name:         String(p.name ?? ''),
+      lat:          event.lngLat.lat,
+      lng:          event.lngLat.lng,
+      speed:        Number(p.speed ?? 0),
+      heading:      Number(p.heading ?? 0),
+      shipType:     Number(p.shipType ?? 0),
+      shipTypeName: String(p.shipTypeName ?? ''),
+      timestamp:    Number(p.timestamp ?? 0),
+    }
+    setSelectedEntity({ type: 'vessel', data: vessel })
+    setPanelVisible('entity', true)
+  }, [setSelectedEntity, setPanelVisible])
 
   const handleMapLoad = useCallback(() => {
     const map = mapRef.current?.getMap()
@@ -55,6 +78,8 @@ export function MapCanvas() {
         mapStyle={config.mapStyle}
         initialViewState={config.initialViewState}
         onLoad={handleMapLoad}
+        onClick={handleMapClick}
+        interactiveLayerIds={activeView === 'global' ? ['vessel-points'] : []}
         projection={activeView === 'global' || activeView === 'space' ? 'globe' : 'mercator'}
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
