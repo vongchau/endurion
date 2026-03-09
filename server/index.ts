@@ -17,9 +17,11 @@ app.get('/api/incidents', (c) => c.json(deduplicateIncidents(getIncidents())))
 app.get('/api/flights',   (c) => c.json(getFlights()))
 app.route('/api/crime', crimeRoute)
 
-// Block until initial data is fetched, then start accepting connections
-await startPoller()
-
+// Start serving immediately — polling runs in background so Vite proxy
+// is never connection-refused on cold start. Cache returns [] until first
+// poll completes (~5-8s), then fills on subsequent 30s cycles.
 serve({ fetch: app.fetch, port: 3001 }, () => {
   console.log('GothamHUD server → http://localhost:3001')
 })
+
+startPoller().catch((e) => console.error('[poller] startup failed:', e))

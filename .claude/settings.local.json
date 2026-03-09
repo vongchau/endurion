@@ -8,7 +8,17 @@
       "Bash(python3:*)",
       "Bash(mkdir:*)",
       "Bash(firecrawl:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(timeout 20 tsx:*)",
+      "Bash(lsof:*)",
+      "Bash(curl:*)",
+      "Bash(npm test:*)",
+      "Bash(firecrawl scrape:*)",
+      "Bash(cat:*)",
+      "Bash(kill 19373:*)",
+      "Bash(npx tsx:*)",
+      "Bash(grep:*)",
+      "Bash(firecrawl browser:*)"
     ]
   }
 }

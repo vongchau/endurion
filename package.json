@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"tsx watch server/index.ts\"",
-    "server": "tsx watch server/index.ts",
+    "dev": "concurrently \"vite\" \"tsx watch --env-file .env.local server/index.ts\"",
+    "server": "tsx watch --env-file .env.local server/index.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
