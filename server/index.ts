@@ -8,6 +8,7 @@ import { startPoller } from './poller'
 import { crimeRoute } from './routes/crime'
 import { getDensityZones, getMilitaryCandidates, getChokepoints, getDisruptions, getStats, getAllVessels } from './aisCache'
 import { startAis, isConnected as aisConnected } from './ais'
+import { getDrones } from './droneCache'
 
 const app = new Hono()
 
@@ -25,6 +26,18 @@ app.get('/api/vessels/chokepoints', (c) => c.json(getChokepoints()))
 app.get('/api/vessels/disruptions', (c) => c.json(getDisruptions()))
 app.get('/api/vessels/stats',       (c) => c.json({ ...getStats(), connected: aisConnected }))
 app.get('/api/vessels/all',         (c) => c.json(getAllVessels()))
+
+app.get('/api/drones/viewport', async (c) => {
+  const minLng = parseFloat(c.req.query('minLng') ?? '')
+  const minLat = parseFloat(c.req.query('minLat') ?? '')
+  const maxLng = parseFloat(c.req.query('maxLng') ?? '')
+  const maxLat = parseFloat(c.req.query('maxLat') ?? '')
+  if ([minLng, minLat, maxLng, maxLat].some(isNaN)) {
+    return c.json([])
+  }
+  const drones = await getDrones(minLng, minLat, maxLng, maxLat)
+  return c.json(drones)
+})
 
 // Start serving immediately — polling runs in background so Vite proxy
 // is never connection-refused on cold start. Cache returns [] until first
