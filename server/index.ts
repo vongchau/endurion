@@ -11,6 +11,7 @@ import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneC
 import { getZones } from './zoneCache'
 import { getTLEs } from './tleCache'
 import { getSpaceWeather } from './spaceWeatherCache'
+import { getCyberGraph, startCyberPoller } from './cyberCache'
 
 const app = new Hono()
 
@@ -116,6 +117,8 @@ app.get('/api/tle', async (c) => {
   return c.json(tles)
 })
 
+app.get('/api/cyber/graph', (c) => c.json(getCyberGraph()))
+
 // Start serving immediately — polling runs in background so Vite proxy
 // is never connection-refused on cold start. Cache returns [] until first
 // poll completes (~5-8s), then fills on subsequent 30s cycles.
@@ -126,3 +129,4 @@ serve({ fetch: app.fetch, port: 3001 }, () => {
 startPoller().catch((e) => console.error('[poller] startup failed:', e))
 startAis()
 startDronePoller()
+startCyberPoller()
