@@ -9,6 +9,7 @@ import { EntityPanel } from './components/panels/EntityPanel'
 import { Timeline } from './components/panels/Timeline'
 import { PanelControls } from './components/PanelControls'
 import { LayerToggles } from './views/global/LayerToggles'
+import { ChokepointPanel } from './views/global/ChokepointPanel'
 import { CitySearch } from './views/city/CitySearch'
 import { CrimeProfilePanel } from './views/city/CrimeProfilePanel'
 import { useHUDStore } from './store'
@@ -64,6 +65,7 @@ export default function App() {
   const [booted, setBooted] = useState(false)
   const activeView = useHUDStore((s) => s.activeView)
   const selectedCity = useHUDStore((s) => s.selectedCity)
+  const globalLayers = useHUDStore((s) => s.globalLayers)
   useKeyboardShortcuts()
 
   return (
@@ -79,6 +81,7 @@ export default function App() {
       <Timeline />
       <PanelControls />
       {activeView === 'global' && <LayerToggles />}
+      {activeView === 'global' && globalLayers.has('maritime') && <ChokepointPanel />}
       {activeView === 'city' && <CitySearch mapRef={mapRef} />}
       <AnimatePresence>
         {activeView === 'city' && selectedCity && <CrimeProfilePanel key="crime-panel" />}
