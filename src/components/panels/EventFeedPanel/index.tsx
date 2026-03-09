@@ -5,7 +5,7 @@ import { useGlobalData } from '../../../hooks/useGlobalData'
 import { useFlights } from '../../../hooks/useFlights'
 import { useDisruptions } from '../../../hooks/useDisruptions'
 import { useDrones } from '../../../hooks/useDrones'
-import { cyberGraph } from '../../../data/cyber-graph'
+import { useCyberGraph } from '../../../hooks/useCyberGraph'
 import { useSatellites } from '../../../views/space/useSatellites'
 import type { Severity } from '../../../types'
 import { incidentToLayer } from '../../../utils/incidentLayer'
@@ -101,6 +101,7 @@ export function EventFeedPanel() {
   const mapBounds  = useHUDStore((s) => s.mapBounds)
   const showUAS    = activeView === 'city' && cityLayers.has('uas')
   const { drones } = useDrones(showUAS, mapBounds)
+  const { graph: cyberGraph } = useCyberGraph()
 
   // Only fetch satellite data when in space view
   const { satellites, loading: satsLoading } = useSatellites()
@@ -159,11 +160,26 @@ export function EventFeedPanel() {
         },
       }))
     : activeView === 'cyber'
-    ? cyberGraph.edges.map(e => ({
-        id: e.id, label: `${e.sourceId} → ${e.targetId}`, sublabel: e.protocol,
-        severity: (e.threatScore > 85 ? 'critical' : e.threatScore > 65 ? 'high' : 'medium') as Severity,
-        time: '--:--', onClick: () => {},
-      }))
+    ? (cyberGraph?.edges ?? [])
+        .filter(e => !e.id.startsWith('me-'))  // skip micro-edges, show only actor→target
+        .map(e => {
+          const srcNode = cyberGraph?.nodes.find(n => n.id === e.sourceId)
+          const dstNode = cyberGraph?.nodes.find(n => n.id === e.targetId)
+          return {
+            id: e.id,
+            label: `${srcNode?.label ?? e.sourceId} → ${dstNode?.label ?? e.targetId}`,
+            sublabel: e.protocol,
+            severity: (e.threatScore > 85 ? 'critical' : e.threatScore > 65 ? 'high' : 'medium') as Severity,
+            time: '--:--',
+            source: 'CF1',
+            onClick: () => {
+              if (srcNode) {
+                setSelectedEntity({ type: 'node', data: srcNode })
+                setPanelVisible('entity', true)
+              }
+            },
+          }
+        })
     : // space
       [
         ...swAlerts.slice(0, 5).map(a => ({
@@ -207,7 +223,7 @@ export function EventFeedPanel() {
               ? `UAS TRACKER · ${items.length}`
               : activeView === 'space'
               ? 'TRACKED OBJECTS'
-              : 'LIVE EVENT FEED'
+              : `THREAT FEED · ${items.length}`
           } />
           {activeView === 'space' && <SpaceWeatherStrip scales={scales} kpIndex={kpIndex} />}
           {activeView === 'space' && satsLoading ? (
