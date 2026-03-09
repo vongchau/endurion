@@ -4,6 +4,7 @@ import { Marker, Source, Layer, useMap } from 'react-map-gl/mapbox'
 import type { CircleLayerSpecification, MapMouseEvent } from 'mapbox-gl'
 import { useHUDStore } from '../../store'
 import { useSatellites } from './useSatellites'
+import { SpaceWeatherPanel } from './SpaceWeatherPanel'
 import type { Satellite } from '../../types'
 
 const CIRCLE_LAYER: CircleLayerSpecification = {
@@ -129,6 +130,8 @@ export function SpaceLayer() {
       </Source>
 
       {iss && <ISSMarker sat={iss} />}
+
+      <SpaceWeatherPanel />
     </>
   )
 }

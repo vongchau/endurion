@@ -10,6 +10,7 @@ import { useSatellites } from '../../../views/space/useSatellites'
 import type { Severity } from '../../../types'
 import { incidentToLayer } from '../../../utils/incidentLayer'
 import { mapRef } from '../../../mapRef'
+import { useSpaceWeather } from '../../../hooks/useSpaceWeather'
 
 const SEVERITY_COLORS: Record<Severity, string> = {
   critical: 'text-hud-red border-hud-red/40',
@@ -46,6 +47,7 @@ export function EventFeedPanel() {
 
   // Only fetch satellite data when in space view
   const { satellites, loading: satsLoading } = useSatellites()
+  const { alerts: swAlerts } = useSpaceWeather(activeView === 'space')
 
   const items = activeView === 'global'
     ? [
@@ -106,20 +108,31 @@ export function EventFeedPanel() {
         time: '--:--', onClick: () => {},
       }))
     : // space
-      [...satellites]
-        .sort((a, b) => b.altitude - a.altitude)
-        .slice(0, 50) // show top 50 by altitude
-        .map(s => ({
-          id: s.id,
-          label: s.name,
-          sublabel: `${s.altitude} km`,
-          severity: s.type === 'iss' ? 'high' : 'nominal' as Severity,
-          time: `${s.velocity} km/s`,
-          onClick: () => {
-            setSelectedEntity({ type: 'satellite', data: s })
-            setPanelVisible('entity', true)
-          },
-        }))
+      [
+        ...swAlerts.slice(0, 5).map(a => ({
+          id: a.id,
+          label: a.title,
+          sublabel: a.category.replace('_', ' ').toUpperCase(),
+          severity: (a.severity === 'alert' ? 'critical' : a.severity === 'warning' ? 'high' : 'medium') as Severity,
+          time: a.timestamp.slice(5, 16),
+          source: 'SWPC',
+          onClick: () => {},
+        })),
+        ...[...satellites]
+          .sort((a, b) => b.altitude - a.altitude)
+          .slice(0, 50)
+          .map(s => ({
+            id: s.id,
+            label: s.name,
+            sublabel: `${s.altitude} km`,
+            severity: (s.type === 'iss' ? 'high' : 'nominal') as Severity,
+            time: `${s.velocity} km/s`,
+            onClick: () => {
+              setSelectedEntity({ type: 'satellite', data: s })
+              setPanelVisible('entity', true)
+            },
+          })),
+      ]
 
   return (
     <AnimatePresence>

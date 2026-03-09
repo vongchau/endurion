@@ -10,6 +10,7 @@ import { startAis, isConnected as aisConnected } from './ais'
 import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneCache'
 import { getZones } from './zoneCache'
 import { getTLEs } from './tleCache'
+import { getSpaceWeather } from './spaceWeatherCache'
 
 const app = new Hono()
 
@@ -102,6 +103,11 @@ app.get('/api/airspace/zones', async (c) => {
   }
   const zones = await getZones(minLng, minLat, maxLng, maxLat)
   return c.json(zones)
+})
+
+app.get('/api/space-weather', async (c) => {
+  const data = await getSpaceWeather()
+  return c.json(data)
 })
 
 app.get('/api/tle', async (c) => {
