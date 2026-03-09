@@ -1,7 +1,7 @@
 // src/components/panels/EntityPanel/index.tsx
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
-import type { GlobalIncident, CityPOI, CyberNode, Satellite, AISVessel, Severity } from '../../../types'
+import type { GlobalIncident, CityPOI, CyberNode, Satellite, AISVessel, DroneFlight, Severity } from '../../../types'
 
 const SEVERITY_BG: Record<Severity, string> = {
   critical: 'bg-hud-red/10 text-hud-red border-hud-red/30',
@@ -116,6 +116,36 @@ function VesselDetail({ data }: { data: AISVessel }) {
   )
 }
 
+function DroneDetail({ data }: { data: DroneFlight }) {
+  const isAirborne = data.state === 'airborne' || data.altitude > 5
+  const badge = isAirborne ? SEVERITY_BG.medium : SEVERITY_BG.nominal
+  const badgeLabel = isAirborne ? 'AIRBORNE' : 'GROUNDED'
+  const speedMs = data.speed.toFixed(1)
+
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${badge}`}>
+        UAS {badgeLabel} — {data.state.toUpperCase()}
+      </div>
+      <DataRow label="OP ID"     value={data.id} />
+      <DataRow label="SENSOR"    value={data.sensorId} />
+      <DataRow label="LAT/LNG"   value={`${data.lat.toFixed(5)}, ${data.lng.toFixed(5)}`} />
+      <DataRow label="ALTITUDE"  value={`${Math.round(data.altitude)} m MSL`} />
+      <DataRow label="HEADING"   value={`${Math.round(data.heading)}°`} />
+      <div className="flex justify-between items-start py-1.5 border-b border-hud-dim/10">
+        <span className="font-mono text-[10px] text-hud-dim tracking-wider">SPEED</span>
+        <span className={`font-mono text-xs ${data.speed > 20 ? 'text-hud-red' : data.speed > 10 ? 'text-hud-amber' : 'text-hud-text'}`}>
+          {speedMs} m/s
+        </span>
+      </div>
+      {data.verticalSpeed !== 0 && (
+        <DataRow label="V/S" value={`${data.verticalSpeed > 0 ? '+' : ''}${data.verticalSpeed.toFixed(1)} m/s`} />
+      )}
+      <DataRow label="LAST SEEN" value={new Date(data.timestamp).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />
+    </div>
+  )
+}
+
 export function EntityPanel() {
   const panels = useHUDStore((s) => s.panels)
   const selectedEntity = useHUDStore((s) => s.selectedEntity)
@@ -153,6 +183,7 @@ export function EntityPanel() {
               {selectedEntity.type === 'node' && <NodeDetail data={selectedEntity.data as CyberNode} />}
               {selectedEntity.type === 'satellite' && <SatelliteDetail data={selectedEntity.data as Satellite} />}
               {selectedEntity.type === 'vessel' && <VesselDetail data={selectedEntity.data as AISVessel} />}
+              {selectedEntity.type === 'drone' && <DroneDetail data={selectedEntity.data as DroneFlight} />}
             </div>
           )}
         </motion.div>
