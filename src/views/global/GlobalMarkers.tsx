@@ -3,7 +3,9 @@ import { Marker } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
 import { useGlobalData } from '../../hooks/useGlobalData'
 import { useFlights } from '../../hooks/useFlights'
-import type { GlobalIncident, MilitaryFlight, Severity } from '../../types'
+import { useVessels } from '../../hooks/useVessels'
+import { VesselDensityLayer } from './VesselDensityLayer'
+import type { GlobalIncident, MilitaryFlight, MilitaryCandidate, Severity } from '../../types'
 import { incidentToLayer } from '../../utils/incidentLayer'
 
 const SEVERITY_COLORS: Record<Severity, string> = {
@@ -54,10 +56,28 @@ function FlightMarker({ flight }: { flight: MilitaryFlight }) {
   )
 }
 
+function VesselMarker({ candidate }: { candidate: MilitaryCandidate }) {
+  return (
+    <Marker longitude={candidate.lng} latitude={candidate.lat} anchor="center">
+      <div
+        style={{ transform: `rotate(${candidate.heading}deg)` }}
+        title={`${candidate.name || `MMSI ${candidate.mmsi}`} — ${candidate.reason}`}
+        className="w-4 h-4 flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity"
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <path d="M5 0L9 10L5 7L1 10L5 0Z" fill="#00ff88" />
+        </svg>
+      </div>
+    </Marker>
+  )
+}
+
 export function GlobalMarkers() {
   const globalLayers = useHUDStore((s) => s.globalLayers)
   const { data: incidents } = useGlobalData()
   const { data: flights } = useFlights()
+  const { density, military } = useVessels()
+  const showMaritime = globalLayers.has('maritime')
 
   const visibleIncidents = incidents.filter((i) => globalLayers.has(incidentToLayer(i)))
   const showFlights = globalLayers.has('military')
@@ -69,6 +89,10 @@ export function GlobalMarkers() {
       ))}
       {showFlights && flights.map((flight) => (
         <FlightMarker key={flight.id} flight={flight} />
+      ))}
+      {showMaritime && <VesselDensityLayer zones={density} />}
+      {showMaritime && military.map((c) => (
+        <VesselMarker key={c.mmsi} candidate={c} />
       ))}
     </>
   )
