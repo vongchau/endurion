@@ -4,7 +4,9 @@ import { useHUDStore } from '../../store'
 import { useGlobalData } from '../../hooks/useGlobalData'
 import { useFlights } from '../../hooks/useFlights'
 import { useVessels } from '../../hooks/useVessels'
+import { useAllVessels } from '../../hooks/useAllVessels'
 import { VesselDensityLayer } from './VesselDensityLayer'
+import { VesselLayer } from './VesselLayer'
 import type { GlobalIncident, MilitaryFlight, MilitaryCandidate, Severity } from '../../types'
 import { incidentToLayer } from '../../utils/incidentLayer'
 
@@ -77,6 +79,7 @@ export function GlobalMarkers() {
   const { data: incidents } = useGlobalData()
   const { data: flights } = useFlights()
   const { density, military } = useVessels()
+  const { vessels } = useAllVessels()
   const showMaritime = globalLayers.has('maritime')
 
   const visibleIncidents = incidents.filter((i) => globalLayers.has(incidentToLayer(i)))
@@ -91,6 +94,7 @@ export function GlobalMarkers() {
         <FlightMarker key={flight.id} flight={flight} />
       ))}
       {showMaritime && <VesselDensityLayer zones={density} />}
+      {showMaritime && <VesselLayer vessels={vessels} />}
       {showMaritime && military.map((c) => (
         <VesselMarker key={c.mmsi} candidate={c} />
       ))}
