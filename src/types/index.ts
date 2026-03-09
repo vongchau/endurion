@@ -29,7 +29,57 @@ export interface MilitaryFlight {
   timestamp: string
 }
 
-export type GlobalLayer = 'conflict' | 'disaster' | 'military'
+export type GlobalLayer = 'conflict' | 'disaster' | 'military' | 'maritime'
+
+export interface AISVessel {
+  mmsi: number
+  name: string
+  lat: number
+  lng: number
+  speed: number       // knots
+  heading: number     // degrees 0–360
+  shipType: number    // AIS numeric ship type
+  shipTypeName: string
+  timestamp: number
+}
+
+export interface VesselDensityZone {
+  lat: number
+  lng: number
+  intensity: number   // 0.0–1.0 log-normalized
+  vesselCount: number
+}
+
+export interface MilitaryCandidate {
+  mmsi: number
+  name: string
+  lat: number
+  lng: number
+  heading: number
+  speed: number
+  shipType: number
+  reason: string      // human-readable detection reason
+  timestamp: number
+}
+
+export interface Chokepoint {
+  name: string
+  lat: number
+  lng: number
+  radius: number      // degrees, search radius
+  vesselCount: number // live count from aisCache
+}
+
+export interface AISDisruption {
+  id: string
+  name: string
+  type: 'chokepoint_congestion' | 'dark_ship'
+  lat: number
+  lng: number
+  severity: 'low' | 'elevated' | 'high'
+  vesselCount: number
+  description: string
+}
 
 export interface CityPOI {
   id: string
