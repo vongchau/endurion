@@ -5,7 +5,6 @@ import {
   getDensityZones,
   getMilitaryCandidates,
   getChokepoints,
-  getDisruptions,
   getStats,
   isLikelyMilitary,
   cleanupStaleVessels,
@@ -43,15 +42,13 @@ describe('isLikelyMilitary', () => {
 describe('processVesselMessage', () => {
   it('adds vessel to cache', () => {
     processVesselMessage(123456789, 51.5, -0.1, 0, 'TEST', 10, 90, 90)
-    const candidates = getMilitaryCandidates()
     const stats = getStats()
     expect(stats.vessels).toBe(1)
   })
 
   it('adds military vessel to candidates', () => {
     processVesselMessage(111000001, 26.5, 56.5, 35, 'WARSHIP', 15, 180, 180)
-    const candidates = getMilitaryCandidates()
-    expect(candidates.some(c => c.mmsi === 111000001)).toBe(true)
+    expect(getMilitaryCandidates().some(c => c.mmsi === 111000001)).toBe(true)
   })
 })
 

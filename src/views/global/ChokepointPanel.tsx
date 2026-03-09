@@ -10,7 +10,7 @@ export function ChokepointPanel() {
       try {
         const res = await fetch('/api/vessels/chokepoints')
         if (res.ok) setChokepoints(await res.json())
-      } catch {}
+      } catch { /* ignore fetch errors — panel stays stale */ }
     }
     fetch_()
     const id = setInterval(fetch_, 30_000)

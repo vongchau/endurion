@@ -15,8 +15,9 @@ export function useDisruptions() {
   }
 
   useEffect(() => {
-    fetchData()
-    const id = setInterval(fetchData, 30_000)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchData()
+    const id = setInterval(() => { void fetchData() }, 30_000)
     return () => clearInterval(id)
   }, [])
 

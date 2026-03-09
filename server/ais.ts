@@ -10,7 +10,7 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 export let isConnected = false
 
 function connect(apiKey: string): void {
-  if (ws) { try { ws.close() } catch {} }
+  if (ws) { try { ws.close() } catch { /* ignore close errors on reconnect */ } }
 
   console.log('[ais] connecting to AISStream…')
   ws = new WebSocket(WS_URL)
@@ -55,7 +55,7 @@ function connect(apiKey: string): void {
       }
 
       processVesselMessage(mmsi, lat, lng, shipType, name, speed, course, heading)
-    } catch {}
+    } catch { /* ignore malformed AIS messages */ }
   })
 
   ws.addEventListener('error', (e) => {
