@@ -9,6 +9,7 @@ import { cyberGraph } from '../../../data/cyber-graph'
 import { useSatellites } from '../../../views/space/useSatellites'
 import type { Severity } from '../../../types'
 import { incidentToLayer } from '../../../utils/incidentLayer'
+import { mapRef } from '../../../mapRef'
 
 const SEVERITY_COLORS: Record<Severity, string> = {
   critical: 'text-hud-red border-hud-red/40',
@@ -95,6 +96,7 @@ export function EventFeedPanel() {
         onClick: () => {
           setSelectedEntity({ type: 'drone', data: d })
           setPanelVisible('entity', true)
+          mapRef.current?.flyTo({ center: [d.lng, d.lat], zoom: 14, duration: 1500 })
         },
       }))
     : activeView === 'cyber'
