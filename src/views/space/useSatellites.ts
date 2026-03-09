@@ -112,8 +112,7 @@ export function buildGeoJSON(satellites: Satellite[]) {
   }
 }
 
-const ISS_URL = 'https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE'
-const STARLINK_URL = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=TLE'
+const TLE_API = '/api/tle'
 
 interface UseSatellitesReturn {
   satellites: Satellite[]
@@ -136,27 +135,19 @@ export function useSatellites(): UseSatellitesReturn {
 
     async function fetchTLEs() {
       try {
-        const [issRes, starlinkRes] = await Promise.all([
-          fetch(ISS_URL),
-          fetch(STARLINK_URL),
-        ])
-
-        if (!issRes.ok || !starlinkRes.ok) throw new Error('Fetch failed')
-
-        const [issText, starlinkText] = await Promise.all([
-          issRes.text(),
-          starlinkRes.text(),
-        ])
+        const res = await fetch(TLE_API)
+        if (!res.ok) throw new Error(`TLE API: ${res.status}`)
+        const data = await res.json() as { iss: string; starlink: string }
 
         if (cancelled) return
 
-        const issEntries = parseTLE(issText, 'iss')
-        const starlinkEntries = parseTLE(starlinkText, 'starlink')
+        const issEntries = parseTLE(data.iss, 'iss')
+        const starlinkEntries = parseTLE(data.starlink, 'starlink')
         setEntries([...issEntries, ...starlinkEntries])
         setUsingMockData(false)
       } catch {
         if (cancelled) return
-        // Celestrak unreachable — use mock data
+        // Server TLE cache unavailable — use mock data
         setUsingMockData(true)
         setPositions(MOCK_SATELLITES)
       } finally {

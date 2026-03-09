@@ -9,6 +9,7 @@ import { getDensityZones, getMilitaryCandidates, getChokepoints, getDisruptions,
 import { startAis, isConnected as aisConnected } from './ais'
 import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneCache'
 import { getZones } from './zoneCache'
+import { getTLEs } from './tleCache'
 
 const app = new Hono()
 
@@ -101,6 +102,12 @@ app.get('/api/airspace/zones', async (c) => {
   }
   const zones = await getZones(minLng, minLat, maxLng, maxLat)
   return c.json(zones)
+})
+
+app.get('/api/tle', async (c) => {
+  const tles = await getTLEs()
+  if (!tles) return c.json({ error: 'TLE data unavailable' }, 503)
+  return c.json(tles)
 })
 
 // Start serving immediately — polling runs in background so Vite proxy
