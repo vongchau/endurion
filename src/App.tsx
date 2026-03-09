@@ -12,6 +12,7 @@ import { LayerToggles } from './views/global/LayerToggles'
 import { ChokepointPanel } from './views/global/ChokepointPanel'
 import { CitySearch } from './views/city/CitySearch'
 import { CrimeProfilePanel } from './views/city/CrimeProfilePanel'
+import { CityLayerToggles } from './views/city/CityLayerToggles'
 import { useHUDStore } from './store'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { mapRef } from './mapRef'
@@ -83,6 +84,7 @@ export default function App() {
       {activeView === 'global' && <LayerToggles />}
       {activeView === 'global' && globalLayers.has('maritime') && <ChokepointPanel />}
       {activeView === 'city' && <CitySearch mapRef={mapRef} />}
+      {activeView === 'city' && selectedCity && <CityLayerToggles />}
       <AnimatePresence>
         {activeView === 'city' && selectedCity && <CrimeProfilePanel key="crime-panel" />}
       </AnimatePresence>
