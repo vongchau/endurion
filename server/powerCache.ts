@@ -17,11 +17,11 @@ async function poll() {
   }
 }
 
-export function setPowerLocation(lat: number, lng: number) {
+export function setPowerLocation(lat: number, lng: number): Promise<void> | undefined {
   const state = resolveState(lat, lng)
   if (!state || state === lastState) return
   lastState = state
-  poll()
+  return poll()
 }
 
 export function startPowerPoller() {

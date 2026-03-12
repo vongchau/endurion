@@ -103,49 +103,49 @@ app.get('/api/drones/viewport', async (c) => {
   return c.json(getDrones())
 })
 
-app.get('/api/city/weather', (c) => {
+app.get('/api/city/weather', async (c) => {
   const lat = parseFloat(c.req.query('lat') ?? '')
   const lng = parseFloat(c.req.query('lng') ?? '')
   if (isNaN(lat) || isNaN(lng)) return c.json([])
-  setWeatherPoint(lat, lng)
+  await setWeatherPoint(lat, lng)
   return c.json(getWeatherAlerts())
 })
 
-app.get('/api/city/crime', (c) => {
+app.get('/api/city/crime', async (c) => {
   const minLng = parseFloat(c.req.query('minLng') ?? '')
   const minLat = parseFloat(c.req.query('minLat') ?? '')
   const maxLng = parseFloat(c.req.query('maxLng') ?? '')
   const maxLat = parseFloat(c.req.query('maxLat') ?? '')
   if ([minLng, minLat, maxLng, maxLat].some(isNaN)) return c.json([])
-  setCrimeBbox(minLng, minLat, maxLng, maxLat)
+  await setCrimeBbox(minLng, minLat, maxLng, maxLat)
   return c.json(getCrimeIncidents())
 })
 
-app.get('/api/city/traffic', (c) => {
+app.get('/api/city/traffic', async (c) => {
   const minLng = parseFloat(c.req.query('minLng') ?? '')
   const minLat = parseFloat(c.req.query('minLat') ?? '')
   const maxLng = parseFloat(c.req.query('maxLng') ?? '')
   const maxLat = parseFloat(c.req.query('maxLat') ?? '')
   if ([minLng, minLat, maxLng, maxLat].some(isNaN)) return c.json([])
-  setTrafficBbox(minLng, minLat, maxLng, maxLat)
+  await setTrafficBbox(minLng, minLat, maxLng, maxLat)
   return c.json(getTrafficIncidents())
 })
 
-app.get('/api/city/aircraft', (c) => {
+app.get('/api/city/aircraft', async (c) => {
   const minLng = parseFloat(c.req.query('minLng') ?? '')
   const minLat = parseFloat(c.req.query('minLat') ?? '')
   const maxLng = parseFloat(c.req.query('maxLng') ?? '')
   const maxLat = parseFloat(c.req.query('maxLat') ?? '')
   if ([minLng, minLat, maxLng, maxLat].some(isNaN)) return c.json([])
-  setAircraftBbox(minLng, minLat, maxLng, maxLat)
+  await setAircraftBbox(minLng, minLat, maxLng, maxLat)
   return c.json(getLowAltAircraft())
 })
 
-app.get('/api/city/power', (c) => {
+app.get('/api/city/power', async (c) => {
   const lat = parseFloat(c.req.query('lat') ?? '')
   const lng = parseFloat(c.req.query('lng') ?? '')
   if (isNaN(lat) || isNaN(lng)) return c.json([])
-  setPowerLocation(lat, lng)
+  await setPowerLocation(lat, lng)
   return c.json(getPowerOutages())
 })
 
