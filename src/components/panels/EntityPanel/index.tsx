@@ -4,7 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
 import { useVesselIntel } from '../../../hooks/useVesselIntel'
 import { IocExport } from '../../IocExport'
-import type { GlobalIncident, CyberNode, Satellite, AISVessel, DroneFlight, NewsArticle, CyberNewsArticle, Severity, NewsPriority } from '../../../types'
+import type { GlobalIncident, CyberNode, Satellite, AISVessel, DroneFlight, NewsArticle, CyberNewsArticle, Severity, NewsPriority, ActorProfile } from '../../../types'
+import { EnrichedCveSection } from '../CveDetail'
+import { ActorProfileDetail } from '../ActorProfilePanel'
 
 const SEVERITY_BG: Record<Severity, string> = {
   critical: 'bg-hud-red/10 text-hud-red border-hud-red/30',
@@ -327,13 +329,7 @@ function CyberNewsDetail({ data }: { data: CyberNewsArticle }) {
       {data.cves.length > 0 && (
         <>
           <SectionHeader label="CVEs" color="#ffaa00" />
-          <div className="flex flex-wrap gap-1 mb-2">
-            {data.cves.map(c => (
-              <span key={c} className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-hud-amber/10 text-hud-amber border border-hud-amber/20">
-                {c}
-              </span>
-            ))}
-          </div>
+          <EnrichedCveSection cveIds={data.cves} />
         </>
       )}
 
@@ -559,6 +555,9 @@ export function EntityPanel() {
                     setSelectedEntity({ type: 'news', data: a })
                   }}
                 />
+              )}
+              {selectedEntity.type === 'actorProfile' && (
+                <ActorProfileDetail profile={selectedEntity.data as ActorProfile} />
               )}
             </div>
           )}
