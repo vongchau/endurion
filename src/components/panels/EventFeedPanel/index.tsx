@@ -6,6 +6,11 @@ import { useGlobalData } from '../../../hooks/useGlobalData'
 import { useFlights } from '../../../hooks/useFlights'
 import { useDisruptions } from '../../../hooks/useDisruptions'
 import { useDrones } from '../../../hooks/useDrones'
+import { useTrafficIncidents } from '../../../hooks/useTrafficIncidents'
+import { useWeatherAlerts } from '../../../hooks/useWeatherAlerts'
+import { useCrimeIncidents } from '../../../hooks/useCrimeIncidents'
+import { useLowAltAircraft } from '../../../hooks/useLowAltAircraft'
+import { usePowerOutages } from '../../../hooks/usePowerOutages'
 import { useSatellites } from '../../../views/space/useSatellites'
 import type { Severity } from '../../../types'
 import { incidentToLayer } from '../../../utils/incidentLayer'
@@ -246,6 +251,7 @@ export function EventFeedPanel() {
   const [activeCyberTab, setActiveCyberTab] = useState<CyberFeedType>('all')
   const [showCampaigns, setShowCampaigns] = useState(false)
   const watchlist = useHUDStore((s) => s.watchlist)
+  const mitreTacticFilter = useHUDStore((s) => s.mitreTacticFilter)
 
   const globalLayers = useHUDStore((s) => s.globalLayers)
   const { data: liveIncidents } = useGlobalData()
@@ -256,6 +262,22 @@ export function EventFeedPanel() {
   const mapBounds  = useHUDStore((s) => s.mapBounds)
   const showUAS    = activeView === 'city' && cityLayers.has('uas')
   const { drones } = useDrones(showUAS, mapBounds)
+
+  const showTraffic  = activeView === 'city' && cityLayers.has('traffic')
+  const showWeather  = activeView === 'city' && cityLayers.has('weather')
+  const showCrime    = activeView === 'city' && cityLayers.has('crime')
+  const showAircraft = activeView === 'city' && cityLayers.has('aircraft')
+  const showPower    = activeView === 'city' && cityLayers.has('power')
+
+  const mapCenter = mapBounds
+    ? { lat: (mapBounds.minLat + mapBounds.maxLat) / 2, lng: (mapBounds.minLng + mapBounds.maxLng) / 2 }
+    : null
+  const { data: trafficData }  = useTrafficIncidents(showTraffic, mapBounds)
+  const { data: weatherData }  = useWeatherAlerts(showWeather, mapCenter)
+  const { data: crimeData }    = useCrimeIncidents(showCrime, mapBounds)
+  const { data: aircraftData } = useLowAltAircraft(showAircraft, mapBounds)
+  const { data: powerData }    = usePowerOutages(showPower, mapCenter)
+
   const { articles: cyberArticles } = useCyberNews(activeView === 'cyber')
   const campaigns = useCampaigns(activeView === 'cyber')
 
@@ -360,6 +382,7 @@ export function EventFeedPanel() {
           time: timeStr,
           source: a.attackType.toUpperCase().slice(0, 4),
           cyberType: a.attackType as CyberFeedType,
+          mitreTactics: a.mitreTactics,
           watched: watchlist.has(a.sourceActor?.toLowerCase() ?? '') ||
                    watchlist.has(a.target?.toLowerCase() ?? '') ||
                    a.malwareFamily.some(m => watchlist.has(m.toLowerCase())) ||
@@ -384,26 +407,99 @@ export function EventFeedPanel() {
   for (const item of allCyberItems) cyberCounts[item.cyberType] = (cyberCounts[item.cyberType] ?? 0) + 1
   cyberCounts.all = allCyberItems.length
 
-  const filteredCyber = activeCyberTab === 'all'
+  const tabFilteredCyber = activeCyberTab === 'all'
     ? allCyberItems
     : allCyberItems.filter(item => item.cyberType === activeCyberTab)
+
+  const filteredCyber = mitreTacticFilter
+    ? tabFilteredCyber.filter(item => item.mitreTactics.includes(mitreTacticFilter))
+    : tabFilteredCyber
 
   const items = activeView === 'global'
     ? filteredGlobal
     : activeView === 'city'
-    ? drones.map(d => ({
-        id: d.id,
-        label: d.sensorId,
-        sublabel: d.state === 'airborne' ? `${Math.round(d.altitude)}m · ${d.speed.toFixed(1)} m/s` : d.state.toUpperCase(),
-        severity: (d.state === 'airborne' ? (d.speed > 20 ? 'high' : 'medium') : 'nominal') as Severity,
-        time: `${Math.round(d.heading)}°`,
-        source: 'UAS',
-        onClick: () => {
-          setSelectedEntity({ type: 'drone', data: d })
-          setPanelVisible('entity', true)
-          mapRef.current?.flyTo({ center: [d.lng, d.lat], zoom: 14, duration: 1500 })
-        },
-      }))
+    ? [
+        ...drones.map(d => ({
+          id: d.id,
+          label: d.sensorId,
+          sublabel: d.state === 'airborne' ? `${Math.round(d.altitude)}m · ${d.speed.toFixed(1)} m/s` : d.state.toUpperCase(),
+          severity: (d.state === 'airborne' ? (d.speed > 20 ? 'high' : 'medium') : 'nominal') as Severity,
+          time: `${Math.round(d.heading)}°`,
+          source: 'UAS',
+          onClick: () => {
+            setSelectedEntity({ type: 'drone', data: d })
+            setPanelVisible('entity', true)
+            mapRef.current?.flyTo({ center: [d.lng, d.lat], zoom: 14, duration: 1500 })
+          },
+        })),
+        ...trafficData.map(t => ({
+          id: `tfc-${t.id}`,
+          label: t.description || t.category.toUpperCase(),
+          sublabel: `${t.category} · ${Math.round(t.delay / 60)}min delay`,
+          severity: (t.severity >= 4 ? 'high' : t.severity >= 3 ? 'medium' : t.severity >= 2 ? 'low' : 'nominal') as Severity,
+          time: new Date(t.startTime).toISOString().slice(11, 16),
+          source: 'TFC',
+          onClick: () => {
+            setSelectedEntity({ type: 'traffic', data: t })
+            setPanelVisible('entity', true)
+            mapRef.current?.flyTo({ center: [t.lng, t.lat], zoom: 14, duration: 1500 })
+          },
+        })),
+        ...weatherData.map(w => ({
+          id: `wx-${w.id}`,
+          label: w.event,
+          sublabel: w.headline,
+          severity: (w.severity === 'extreme' ? 'critical' : w.severity === 'severe' ? 'high' : w.severity === 'moderate' ? 'medium' : 'low') as Severity,
+          time: new Date(w.onset).toISOString().slice(11, 16),
+          source: 'NWS',
+          onClick: () => {
+            setSelectedEntity({ type: 'weatherAlert', data: w })
+            setPanelVisible('entity', true)
+          },
+        })),
+        ...crimeData.map(c => ({
+          id: `crm-${c.id}`,
+          label: c.type,
+          sublabel: `${c.city.toUpperCase()} · ${c.description}`,
+          severity: (c.severity === 'violent' ? 'high' : c.severity === 'property' ? 'medium' : 'low') as Severity,
+          time: new Date(c.timestamp).toISOString().slice(11, 16),
+          source: c.city.toUpperCase().slice(0, 3),
+          onClick: () => {
+            setSelectedEntity({ type: 'crime', data: c })
+            setPanelVisible('entity', true)
+            mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 14, duration: 1500 })
+          },
+        })),
+        ...aircraftData.map(a => ({
+          id: `ac-${a.id}`,
+          label: a.callsign || a.icao24,
+          sublabel: `${Math.round(a.altitude)}m · ${Math.round(a.velocity)} m/s · ${Math.round(a.heading)}°`,
+          severity: (a.altitude < 500 ? 'high' : a.altitude < 1500 ? 'medium' : 'low') as Severity,
+          time: `${Math.round(a.altitude)}m`,
+          source: 'SKY',
+          onClick: () => {
+            setSelectedEntity({ type: 'aircraft', data: a })
+            setPanelVisible('entity', true)
+            mapRef.current?.flyTo({ center: [a.lng, a.lat], zoom: 14, duration: 1500 })
+          },
+        })),
+        ...powerData.map(p => ({
+          id: `pwr-${p.id}`,
+          label: `${p.county}, ${p.state}`,
+          sublabel: `${p.utility} · ${p.customersAffected.toLocaleString()} affected`,
+          severity: (p.customersAffected > 10000 ? 'critical' : p.customersAffected > 1000 ? 'high' : p.customersAffected > 100 ? 'medium' : 'low') as Severity,
+          time: p.cause || '—',
+          source: 'PWR',
+          onClick: () => {
+            setSelectedEntity({ type: 'powerOutage', data: p })
+            setPanelVisible('entity', true)
+            mapRef.current?.flyTo({ center: [p.centroid.lng, p.centroid.lat], zoom: 10, duration: 1500 })
+          },
+        })),
+      ].sort((a, b) => {
+        const sevOrder: Record<Severity, number> = { critical: 0, high: 1, medium: 2, low: 3, nominal: 4 }
+        return sevOrder[a.severity] - sevOrder[b.severity]
+      })
     : activeView === 'cyber'
     ? filteredCyber
     : // space
@@ -446,7 +542,7 @@ export function EventFeedPanel() {
             activeView === 'global'
               ? `LIVE EVENT FEED · ${items.length}`
               : activeView === 'city'
-              ? `UAS TRACKER · ${items.length}`
+              ? `CITY FEED · ${items.length}`
               : activeView === 'space'
               ? 'TRACKED OBJECTS'
               : `THREAT FEED · ${items.length}`
@@ -527,6 +623,13 @@ export function EventFeedPanel() {
                   <span className="font-mono text-[10px] text-hud-dim/60 shrink-0">{item.time}</span>
                 </motion.button>
               ))}
+              {activeView === 'city' && cityLayers.has('crime') && crimeData.length === 0 && (
+                <div className="px-3 py-2 border-t border-hud-dim/10">
+                  <span className="font-mono text-[8px] text-hud-dim/40 tracking-wider">
+                    CRIME DATA — AVAILABLE IN CHI / NYC / LA
+                  </span>
+                </div>
+              )}
               {activeView === 'global' && globalLayers.has('maritime') && (activeFeedTab === 'all' || activeFeedTab === 'maritime') && (
                 <ChokepointSection chokepoints={chokepoints} />
               )}
