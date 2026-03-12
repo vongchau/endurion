@@ -29,7 +29,7 @@ export interface MilitaryFlight {
   timestamp: string
 }
 
-export type GlobalLayer = 'conflict' | 'disaster' | 'military' | 'maritime'
+export type GlobalLayer = 'conflict' | 'disaster' | 'military' | 'maritime' | 'news'
 
 export type CityLayer = 'uas' | 'zones'
 
@@ -156,9 +156,178 @@ export interface Satellite {
   type: 'iss' | 'starlink'
 }
 
+export type FeedCategory =
+  | 'world_news' | 'regional' | 'defense_security' | 'think_tanks'
+  | 'government' | 'tech' | 'economic' | 'humanitarian' | 'osint'
+  | 'energy_resources'
+
+export type FeedRegion =
+  | 'global' | 'americas' | 'europe' | 'mena' | 'asia' | 'africa'
+  | 'russia_eurasia'
+
+export type NewsPriority = 'critical' | 'high' | 'medium' | 'low'
+
+export interface NewsArticle {
+  id: string
+  title: string
+  link: string
+  source: string
+  category: FeedCategory
+  region: FeedRegion
+  pubDate: string
+  timestamp: number
+  description?: string
+  priority: NewsPriority
+  latitude?: number
+  longitude?: number
+  locationName?: string
+}
+
+export type CyberAttackType =
+  | 'ransomware' | 'apt' | 'phishing' | 'exploit' | 'ddos'
+  | 'data_breach' | 'vulnerability' | 'supply_chain' | 'malware' | 'other'
+
+export type CyberSeverity = 'critical' | 'high' | 'medium' | 'low'
+
+export interface CyberNewsArticle {
+  id: string
+  title: string
+  link: string
+  source: string
+  pubDate: string
+  timestamp: number
+  description?: string
+  sourceActor?: string
+  sourceCountry?: string
+  sourceLat?: number
+  sourceLng?: number
+  target?: string
+  targetCountry?: string
+  targetLat?: number
+  targetLng?: number
+  attackType: CyberAttackType
+  severity: CyberSeverity
+  malwareFamily: string[]
+  cves: string[]
+  iocs: string[]
+  mitreTactics: string[]
+  extracted: boolean
+}
+
+export interface CyberNewsNode {
+  id: string
+  label: string
+  type: 'actor' | 'target'
+  lat: number
+  lng: number
+  country?: string
+  threatScore: number
+  articleCount: number
+  attackTypes: string[]
+}
+
+export interface CyberNewsEdge {
+  id: string
+  sourceId: string
+  targetId: string
+  attackType: string
+  threatScore: number
+  articleCount: number
+}
+
+export interface CyberNewsGraph {
+  nodes: CyberNewsNode[]
+  edges: CyberNewsEdge[]
+}
+
+// ── Cyber Aggregation Types ─────────────────────────────────────────
+
+export interface ThreatStats {
+  totalArticles: number
+  extractedArticles: number
+  activeActors: number
+  activeTargets: number
+  criticalCount24h: number
+  highCount24h: number
+  topAttackTypes: { type: string; count: number }[]
+  topActors: { name: string; count: number; severity: string }[]
+  topTargets: { name: string; count: number }[]
+  topMalware: { name: string; count: number }[]
+  trendingCves: { id: string; count: number }[]
+}
+
+export interface MitreHeatmapCell {
+  tacticId: string
+  tacticName: string
+  count: number
+  severity: string
+}
+
+export interface Campaign {
+  id: string
+  actor: string
+  attackType: string
+  malware: string[]
+  targets: string[]
+  articleCount: number
+  severity: string
+  firstSeen: number
+  lastSeen: number
+  articleIds: string[]
+}
+
+export interface ActorProfile {
+  name: string
+  country: string | null
+  lat: number | null
+  lng: number | null
+  threatScore: number
+  articleCount: number
+  attackTypes: string[]
+  targets: { name: string; country: string | null }[]
+  malware: string[]
+  cves: string[]
+  mitreTactics: string[]
+  recentArticles: { id: string; title: string; severity: string; timestamp: number }[]
+  firstSeen: number
+  lastSeen: number
+}
+
+export interface TemporalBucket {
+  timestamp: number
+  total: number
+  critical: number
+  high: number
+  medium: number
+  low: number
+  attackTypes: Record<string, number>
+}
+
+export interface GeoHeatmapPoint {
+  lat: number
+  lng: number
+  weight: number
+  type: 'actor' | 'target'
+}
+
+export interface CveDetail {
+  id: string
+  description: string
+  cvssScore: number | null
+  cvssVector: string | null
+  cvssSeverity: string | null
+  publishedDate: string
+  lastModified: string
+  references: string[]
+  affectedProducts: string[]
+  exploitAvailable: boolean
+}
+
+export type CyberPanel = 'graph' | 'heatmap' | 'mitre'
+
 export interface Entity {
-  type: 'incident' | 'node' | 'satellite' | 'vessel' | 'drone'
-  data: GlobalIncident | CyberNode | Satellite | AISVessel | DroneFlight
+  type: 'incident' | 'node' | 'satellite' | 'vessel' | 'drone' | 'news' | 'cyberNews' | 'newsCluster' | 'actorProfile' | 'edgeDetail'
+  data: GlobalIncident | CyberNode | Satellite | AISVessel | DroneFlight | NewsArticle | CyberNewsArticle | NewsArticle[] | ActorProfile | CyberNewsArticle[]
 }
 
 export interface PanelState {

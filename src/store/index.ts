@@ -1,6 +1,6 @@
 // src/store/index.ts
 import { create } from 'zustand'
-import type { ViewMode, PanelState, Entity, GlobalLayer, CityLayer, MapBounds } from '../types'
+import type { ViewMode, PanelState, Entity, GlobalLayer, CityLayer, MapBounds, CyberPanel } from '../types'
 
 interface HUDStore {
   activeView: ViewMode
@@ -18,6 +18,12 @@ interface HUDStore {
   toggleGlobalLayer: (layer: GlobalLayer) => void
   cityLayers: Set<CityLayer>
   toggleCityLayer: (layer: CityLayer) => void
+  // Cyber view state
+  cyberPanel: CyberPanel
+  setCyberPanel: (panel: CyberPanel) => void
+  watchlist: Set<string>  // watched actor names, CVE IDs, malware names
+  addToWatchlist: (term: string) => void
+  removeFromWatchlist: (term: string) => void
 }
 
 export const useHUDStore = create<HUDStore>((set) => ({
@@ -43,7 +49,7 @@ export const useHUDStore = create<HUDStore>((set) => ({
   setMapZoom: (zoom) => set({ mapZoom: zoom }),
   mapBounds: null,
   setMapBounds: (bounds) => set({ mapBounds: bounds }),
-  globalLayers: new Set<GlobalLayer>(['conflict', 'disaster', 'military', 'maritime']),
+  globalLayers: new Set<GlobalLayer>(['conflict', 'disaster', 'military', 'maritime', 'news']),
   toggleGlobalLayer: (layer) =>
     set((state) => {
       const next = new Set(state.globalLayers)
@@ -59,4 +65,35 @@ export const useHUDStore = create<HUDStore>((set) => ({
       else next.add(layer)
       return { cityLayers: next }
     }),
+  cyberPanel: 'graph',
+  setCyberPanel: (panel) => set({ cyberPanel: panel }),
+  watchlist: new Set<string>(),
+  addToWatchlist: (term) =>
+    set((state) => {
+      const next = new Set(state.watchlist)
+      next.add(term.toLowerCase())
+      return { watchlist: next }
+    }),
+  removeFromWatchlist: (term) =>
+    set((state) => {
+      const next = new Set(state.watchlist)
+      next.delete(term.toLowerCase())
+      return { watchlist: next }
+    }),
 }))
+
+// Persist watchlist to localStorage
+const WATCHLIST_KEY = 'endurion-watchlist'
+try {
+  const saved = localStorage.getItem(WATCHLIST_KEY)
+  if (saved) {
+    const terms = JSON.parse(saved) as string[]
+    useHUDStore.setState({ watchlist: new Set(terms) })
+  }
+} catch { /* ignore */ }
+
+useHUDStore.subscribe((state, prev) => {
+  if (state.watchlist !== prev.watchlist) {
+    localStorage.setItem(WATCHLIST_KEY, JSON.stringify([...state.watchlist]))
+  }
+})
