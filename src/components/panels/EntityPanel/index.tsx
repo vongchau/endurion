@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
 import { useVesselIntel } from '../../../hooks/useVesselIntel'
 import { IocExport } from '../../IocExport'
-import type { GlobalIncident, CyberNode, Satellite, AISVessel, DroneFlight, NewsArticle, CyberNewsArticle, Severity, NewsPriority, ActorProfile } from '../../../types'
+import type { GlobalIncident, CyberNode, Satellite, AISVessel, DroneFlight, NewsArticle, CyberNewsArticle, Severity, NewsPriority, ActorProfile, CyberClusterData, TrafficIncident, WeatherAlert, CrimeIncident, LowAltAircraft, PowerOutage } from '../../../types'
 import { EnrichedCveSection } from '../CveDetail'
 import { ActorProfileDetail } from '../ActorProfilePanel'
 
@@ -525,6 +525,96 @@ function EdgeDetail({ articles, onSelectArticle }: { articles: CyberNewsArticle[
   )
 }
 
+function CyberClusterDetail({ data, onSelectArticle, onViewProfile }: {
+  data: CyberClusterData
+  onSelectArticle: (a: CyberNewsArticle) => void
+  onViewProfile: () => void
+}) {
+  const byAttackType = new Map<string, number>()
+  for (const a of data.articles) byAttackType.set(a.attackType, (byAttackType.get(a.attackType) ?? 0) + 1)
+  const attackTypes = [...byAttackType.entries()].sort((a, b) => b[1] - a[1])
+
+  const headerColor = data.nodeType === 'actor' ? '#ff2d2d' : '#00d4ff'
+  const headerBg = data.nodeType === 'actor' ? 'bg-hud-red/10 text-hud-red border-hud-red/30' : 'bg-hud-cyan/10 text-hud-cyan border-hud-cyan/30'
+
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${headerBg}`}>
+        {data.nodeType.toUpperCase()} — {data.label} · {data.articles.length} EVENTS
+      </div>
+
+      {/* View actor profile button */}
+      {data.nodeType === 'actor' && (
+        <button
+          onClick={onViewProfile}
+          className="w-full mb-2 px-2 py-1 rounded border text-center font-mono text-[9px] tracking-wider transition-colors border-hud-red/30 text-hud-red hover:bg-hud-red/10"
+        >
+          VIEW FULL ACTOR PROFILE
+        </button>
+      )}
+
+      {/* Attack type breakdown */}
+      <div className="flex flex-wrap gap-1 mb-3">
+        {attackTypes.map(([type, count]) => (
+          <span
+            key={type}
+            className="px-1.5 py-0.5 rounded text-[8px] font-mono border"
+            style={{
+              color: ATTACK_TYPE_COLORS[type] || '#4a6080',
+              borderColor: `${ATTACK_TYPE_COLORS[type] || '#4a6080'}40`,
+              backgroundColor: `${ATTACK_TYPE_COLORS[type] || '#4a6080'}10`,
+            }}
+          >
+            {type.replace(/_/g, ' ').toUpperCase()} ({count})
+          </span>
+        ))}
+      </div>
+
+      {/* Article list */}
+      <div className="space-y-0">
+        {data.articles.map(a => {
+          const ago = Date.now() - a.timestamp
+          const timeStr = ago < 3600_000 ? `${Math.round(ago / 60_000)}m`
+            : ago < 86400_000 ? `${Math.round(ago / 3600_000)}h`
+            : `${Math.round(ago / 86400_000)}d`
+          const sevColor = a.severity === 'critical' ? '#ff2d2d' : a.severity === 'high' ? '#ffaa00' : a.severity === 'medium' ? '#00d4ff' : '#4a6080'
+
+          return (
+            <button
+              key={a.id}
+              onClick={() => onSelectArticle(a)}
+              className="w-full text-left px-2 py-2 border-b border-hud-dim/10 hover:bg-hud-cyan/5 transition-colors"
+            >
+              <div className="flex items-start gap-2">
+                <span
+                  className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: sevColor }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-mono text-[10px] text-hud-text leading-snug line-clamp-2">{a.title}</div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="font-mono text-[8px]" style={{ color: sevColor }}>
+                      {a.severity.toUpperCase()}
+                    </span>
+                    <span className="font-mono text-[8px] text-hud-dim">{a.attackType.replace(/_/g, ' ')}</span>
+                    {a.sourceActor && data.nodeType === 'target' && (
+                      <span className="font-mono text-[8px] text-hud-red truncate">{a.sourceActor}</span>
+                    )}
+                    {a.target && data.nodeType === 'actor' && (
+                      <span className="font-mono text-[8px] text-hud-cyan truncate">{a.target}</span>
+                    )}
+                    <span className="font-mono text-[8px] text-hud-dim/50 ml-auto shrink-0">{timeStr}</span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function DroneDetail({ data }: { data: DroneFlight }) {
   const isAirborne = data.state === 'airborne' || data.altitude > 5
   const badge = isAirborne ? SEVERITY_BG.medium : SEVERITY_BG.nominal
@@ -555,17 +645,160 @@ function DroneDetail({ data }: { data: DroneFlight }) {
   )
 }
 
+function TrafficDetail({ data }: { data: TrafficIncident }) {
+  const sevLabel = data.severity >= 4 ? 'MAJOR' : data.severity >= 3 ? 'MODERATE' : data.severity >= 2 ? 'MINOR' : 'MINIMAL'
+  const badge = data.severity >= 4 ? SEVERITY_BG.high : data.severity >= 3 ? SEVERITY_BG.medium : SEVERITY_BG.low
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${badge}`}>
+        {sevLabel} — {data.category.toUpperCase()}
+      </div>
+      <DataRow label="CATEGORY" value={data.category.toUpperCase()} />
+      <DataRow label="SEVERITY" value={`${data.severity}/4`} />
+      <DataRow label="DELAY" value={`${Math.round(data.delay / 60)} min`} />
+      <DataRow label="LAT/LNG" value={`${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`} />
+      <DataRow label="START" value={new Date(data.startTime).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />
+      {data.endTime && <DataRow label="END" value={new Date(data.endTime).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />}
+      {data.description && (
+        <div className="py-2">
+          <p className="font-mono text-[10px] text-hud-dim leading-relaxed">{data.description}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function WeatherDetail({ data }: { data: WeatherAlert }) {
+  const sevBadge = data.severity === 'extreme' ? SEVERITY_BG.critical
+    : data.severity === 'severe' ? SEVERITY_BG.high
+    : data.severity === 'moderate' ? SEVERITY_BG.medium
+    : SEVERITY_BG.low
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${sevBadge}`}>
+        {data.severity.toUpperCase()} — {data.event}
+      </div>
+      <DataRow label="EVENT" value={data.event} />
+      <DataRow label="SEVERITY" value={data.severity.toUpperCase()} />
+      <DataRow label="URGENCY" value={data.urgency.toUpperCase()} />
+      <DataRow label="ONSET" value={new Date(data.onset).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />
+      <DataRow label="EXPIRES" value={new Date(data.expires).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />
+      <div className="py-2">
+        <p className="font-mono text-xs text-hud-text leading-relaxed">{data.headline}</p>
+      </div>
+      {data.description && (
+        <div className="py-2 border-t border-hud-dim/10">
+          <p className="font-mono text-[10px] text-hud-dim leading-relaxed">{data.description}</p>
+        </div>
+      )}
+      {data.instruction && (
+        <>
+          <SectionHeader label="INSTRUCTIONS" color="#00d4ff" />
+          <p className="font-mono text-[10px] text-hud-cyan/80 leading-relaxed">{data.instruction}</p>
+        </>
+      )}
+    </div>
+  )
+}
+
+function CrimeDetail({ data }: { data: CrimeIncident }) {
+  const badge = data.severity === 'violent' ? SEVERITY_BG.high
+    : data.severity === 'property' ? SEVERITY_BG.medium
+    : SEVERITY_BG.low
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${badge}`}>
+        {data.severity.toUpperCase()} — {data.type}
+      </div>
+      <DataRow label="TYPE" value={data.type} />
+      <DataRow label="SEVERITY" value={data.severity.toUpperCase()} />
+      <DataRow label="CITY" value={data.city.toUpperCase()} />
+      <DataRow label="LAT/LNG" value={`${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`} />
+      <DataRow label="TIME" value={new Date(data.timestamp).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />
+      {data.description && (
+        <div className="py-2">
+          <p className="font-mono text-[10px] text-hud-dim leading-relaxed">{data.description}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AircraftDetail({ data }: { data: LowAltAircraft }) {
+  const altBadge = data.altitude < 500 ? SEVERITY_BG.high
+    : data.altitude < 1500 ? SEVERITY_BG.medium
+    : SEVERITY_BG.low
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${altBadge}`}>
+        AIRCRAFT — {data.callsign || data.icao24}
+      </div>
+      <DataRow label="CALLSIGN" value={data.callsign || '—'} />
+      <DataRow label="ICAO24" value={data.icao24} />
+      <DataRow label="LAT/LNG" value={`${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`} />
+      <DataRow label="ALTITUDE" value={`${Math.round(data.altitude)} m`} />
+      <div className="flex justify-between items-start py-1.5 border-b border-hud-dim/10">
+        <span className="font-mono text-[10px] text-hud-dim tracking-wider">SPEED</span>
+        <span className={`font-mono text-xs ${data.velocity > 100 ? 'text-hud-red' : 'text-hud-text'}`}>
+          {Math.round(data.velocity)} m/s
+        </span>
+      </div>
+      <DataRow label="HEADING" value={`${Math.round(data.heading)}°`} />
+      {data.verticalRate !== 0 && (
+        <DataRow label="V/S" value={`${data.verticalRate > 0 ? '+' : ''}${data.verticalRate.toFixed(1)} m/s`} />
+      )}
+      {data.squawk && <DataRow label="SQUAWK" value={data.squawk} />}
+      <DataRow label="ON GROUND" value={data.onGround ? 'YES' : 'NO'} />
+      <DataRow label="LAST SEEN" value={new Date(data.timestamp).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />
+    </div>
+  )
+}
+
+function PowerDetail({ data }: { data: PowerOutage }) {
+  const badge = data.customersAffected > 10000 ? SEVERITY_BG.critical
+    : data.customersAffected > 1000 ? SEVERITY_BG.high
+    : data.customersAffected > 100 ? SEVERITY_BG.medium
+    : SEVERITY_BG.low
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${badge}`}>
+        OUTAGE — {data.county}, {data.state}
+      </div>
+      <DataRow label="COUNTY" value={data.county} />
+      <DataRow label="STATE" value={data.state} />
+      <DataRow label="UTILITY" value={data.utility} />
+      <div className="flex justify-between items-start py-1.5 border-b border-hud-dim/10">
+        <span className="font-mono text-[10px] text-hud-dim tracking-wider">AFFECTED</span>
+        <span className={`font-mono text-xs ${data.customersAffected > 10000 ? 'text-hud-red' : data.customersAffected > 1000 ? 'text-hud-amber' : 'text-hud-text'}`}>
+          {data.customersAffected.toLocaleString()}
+        </span>
+      </div>
+      <DataRow label="REPORTED" value={new Date(data.reportedStart).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />
+      {data.estimatedRestoration && (
+        <DataRow label="EST. RESTORE" value={new Date(data.estimatedRestoration).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />
+      )}
+      {data.cause && <DataRow label="CAUSE" value={data.cause} />}
+    </div>
+  )
+}
+
 export function EntityPanel() {
   const panels = useHUDStore((s) => s.panels)
   const selectedEntity = useHUDStore((s) => s.selectedEntity)
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
+  const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
   // Stash cluster data so we can navigate back from a drilled-down article
   const clusterRef = useRef<NewsArticle[] | null>(null)
-  const canGoBack = clusterRef.current !== null && selectedEntity?.type === 'news'
+  const cyberClusterRef = useRef<CyberClusterData | null>(null)
+  const canGoBack = (clusterRef.current !== null && selectedEntity?.type === 'news') ||
+    (cyberClusterRef.current !== null && selectedEntity?.type === 'cyberNews')
 
-  // Clear stash when entity changes to something other than news or newsCluster
+  // Clear stash when entity changes to something unrelated
   if (selectedEntity && selectedEntity.type !== 'news' && selectedEntity.type !== 'newsCluster') {
     clusterRef.current = null
+  }
+  if (selectedEntity && selectedEntity.type !== 'cyberNews' && selectedEntity.type !== 'cyberCluster' && selectedEntity.type !== 'actorProfile') {
+    cyberClusterRef.current = null
   }
 
   return (
@@ -581,7 +814,13 @@ export function EntityPanel() {
             <div className="flex items-center gap-2">
               {canGoBack && (
                 <button
-                  onClick={() => setSelectedEntity({ type: 'newsCluster', data: clusterRef.current! })}
+                  onClick={() => {
+                    if (cyberClusterRef.current && (selectedEntity?.type === 'cyberNews' || selectedEntity?.type === 'actorProfile')) {
+                      setSelectedEntity({ type: 'cyberCluster', data: cyberClusterRef.current })
+                    } else if (clusterRef.current) {
+                      setSelectedEntity({ type: 'newsCluster', data: clusterRef.current })
+                    }
+                  }}
                   className="font-mono text-[10px] text-hud-dim hover:text-hud-cyan transition-colors mr-1"
                   title="Back to cluster"
                 >
@@ -590,11 +829,11 @@ export function EntityPanel() {
               )}
               <div className="w-1 h-4 bg-hud-purple rounded-full" />
               <span className="font-mono text-[10px] tracking-widest text-hud-purple">
-                {canGoBack ? 'ARTICLE DETAIL' : 'ENTITY DETAILS'}
+                {canGoBack ? (cyberClusterRef.current ? 'THREAT DETAIL' : 'ARTICLE DETAIL') : 'ENTITY DETAILS'}
               </span>
             </div>
             {selectedEntity && (
-              <button onClick={() => { clusterRef.current = null; setSelectedEntity(null) }} className="text-hud-dim hover:text-hud-text font-mono text-xs">×</button>
+              <button onClick={() => { clusterRef.current = null; cyberClusterRef.current = null; setSelectedEntity(null) }} className="text-hud-dim hover:text-hud-text font-mono text-xs">×</button>
             )}
           </div>
 
@@ -625,12 +864,39 @@ export function EntityPanel() {
               {selectedEntity.type === 'actorProfile' && (
                 <ActorProfileDetail profile={selectedEntity.data as ActorProfile} />
               )}
+              {selectedEntity.type === 'cyberCluster' && (
+                <CyberClusterDetail
+                  data={selectedEntity.data as CyberClusterData}
+                  onSelectArticle={(a) => {
+                    cyberClusterRef.current = selectedEntity.data as CyberClusterData
+                    setSelectedEntity({ type: 'cyberNews', data: a })
+                  }}
+                  onViewProfile={() => {
+                    const cluster = selectedEntity.data as CyberClusterData
+                    cyberClusterRef.current = cluster
+                    fetch(`/api/cyber/actor/${encodeURIComponent(cluster.label)}`)
+                      .then(res => res.ok ? res.json() : null)
+                      .then(profile => {
+                        if (profile) {
+                          setSelectedEntity({ type: 'actorProfile', data: profile })
+                          setPanelVisible('entity', true)
+                        }
+                      })
+                      .catch(() => {})
+                  }}
+                />
+              )}
               {selectedEntity.type === 'edgeDetail' && (
                 <EdgeDetail
                   articles={selectedEntity.data as CyberNewsArticle[]}
                   onSelectArticle={(a) => setSelectedEntity({ type: 'cyberNews', data: a })}
                 />
               )}
+              {selectedEntity.type === 'traffic' && <TrafficDetail data={selectedEntity.data as TrafficIncident} />}
+              {selectedEntity.type === 'weatherAlert' && <WeatherDetail data={selectedEntity.data as WeatherAlert} />}
+              {selectedEntity.type === 'crime' && <CrimeDetail data={selectedEntity.data as CrimeIncident} />}
+              {selectedEntity.type === 'aircraft' && <AircraftDetail data={selectedEntity.data as LowAltAircraft} />}
+              {selectedEntity.type === 'powerOutage' && <PowerDetail data={selectedEntity.data as PowerOutage} />}
             </div>
           )}
         </motion.div>
