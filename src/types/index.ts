@@ -1,4 +1,5 @@
 // src/types/index.ts
+import type * as GeoJSON from 'geojson'
 
 export type ViewMode = 'global' | 'city' | 'cyber' | 'space'
 
@@ -31,7 +32,7 @@ export interface MilitaryFlight {
 
 export type GlobalLayer = 'conflict' | 'disaster' | 'military' | 'maritime' | 'news'
 
-export type CityLayer = 'uas' | 'zones'
+export type CityLayer = 'uas' | 'zones' | 'traffic' | 'weather' | 'crime' | 'aircraft' | 'power'
 
 export interface AISVessel {
   mmsi: number
@@ -106,6 +107,70 @@ export interface DroneFlight {
   heading: number         // degrees 0-360
   state: string           // 'grounded' | 'airborne' | etc.
   timestamp: number
+}
+
+export interface TrafficIncident {
+  id: string
+  lat: number
+  lng: number
+  category: 'accident' | 'congestion' | 'roadClosed' | 'roadWorks' | 'weather' | 'other'
+  severity: 1 | 2 | 3 | 4
+  description: string
+  delay: number
+  startTime: number
+  endTime?: number
+}
+
+export interface WeatherAlert {
+  id: string
+  event: string
+  severity: 'extreme' | 'severe' | 'moderate' | 'minor'
+  urgency: 'immediate' | 'expected' | 'future'
+  headline: string
+  description: string
+  instruction?: string
+  onset: number
+  expires: number
+  geometry: GeoJSON.Geometry | null
+}
+
+export interface CrimeIncident {
+  id: string
+  lat: number
+  lng: number
+  type: string
+  description: string
+  timestamp: number
+  city: 'chicago' | 'nyc' | 'la'
+  severity: 'violent' | 'property' | 'other'
+}
+
+export interface LowAltAircraft {
+  id: string
+  icao24: string
+  callsign: string
+  lat: number
+  lng: number
+  altitude: number
+  velocity: number
+  heading: number
+  verticalRate: number
+  squawk: string | null
+  onGround: boolean
+  timestamp: number
+}
+
+export interface PowerOutage {
+  id: string
+  state: string
+  county: string
+  utility: string
+  customersAffected: number
+  reportedStart: number
+  estimatedRestoration?: number
+  cause?: string
+  geometry: GeoJSON.Geometry | null
+  centroid: { lat: number; lng: number }
 }
 
 export interface MapBounds {
@@ -325,9 +390,15 @@ export interface CveDetail {
 
 export type CyberPanel = 'graph' | 'heatmap' | 'mitre'
 
+export interface CyberClusterData {
+  label: string
+  nodeType: 'actor' | 'target'
+  articles: CyberNewsArticle[]
+}
+
 export interface Entity {
-  type: 'incident' | 'node' | 'satellite' | 'vessel' | 'drone' | 'news' | 'cyberNews' | 'newsCluster' | 'actorProfile' | 'edgeDetail'
-  data: GlobalIncident | CyberNode | Satellite | AISVessel | DroneFlight | NewsArticle | CyberNewsArticle | NewsArticle[] | ActorProfile | CyberNewsArticle[]
+  type: 'incident' | 'node' | 'satellite' | 'vessel' | 'drone' | 'news' | 'cyberNews' | 'newsCluster' | 'actorProfile' | 'edgeDetail' | 'cyberCluster' | 'traffic' | 'weatherAlert' | 'crime' | 'aircraft' | 'powerOutage'
+  data: GlobalIncident | CyberNode | Satellite | AISVessel | DroneFlight | NewsArticle | CyberNewsArticle | NewsArticle[] | ActorProfile | CyberNewsArticle[] | CyberClusterData | TrafficIncident | WeatherAlert | CrimeIncident | LowAltAircraft | PowerOutage
 }
 
 export interface PanelState {
