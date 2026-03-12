@@ -8,12 +8,11 @@ import { EventFeedPanel } from './components/panels/EventFeedPanel'
 import { EntityPanel } from './components/panels/EntityPanel'
 import { Timeline } from './components/panels/Timeline'
 import { PanelControls } from './components/PanelControls'
-import { LayerToggles } from './views/global/LayerToggles'
-import { ChokepointPanel } from './views/global/ChokepointPanel'
 import { CityLayerToggles } from './views/city/CityLayerToggles'
+import { CyberDashboard } from './views/cyber/CyberDashboard'
+import { CyberTimeline } from './views/cyber/CyberTimeline'
 import { useHUDStore } from './store'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
-import { mapRef } from './mapRef'
 
 function BootScreen({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
@@ -32,7 +31,7 @@ function BootScreen({ onComplete }: { onComplete: () => void }) {
         animate={{ opacity: 1, scale: 1 }}
         className="font-mono text-hud-cyan text-lg tracking-[0.5em]"
       >
-        GOTHAMHUD
+        ENDURION
       </motion.div>
       <motion.div
         initial={{ opacity: 0 }}
@@ -63,7 +62,6 @@ function BootScreen({ onComplete }: { onComplete: () => void }) {
 export default function App() {
   const [booted, setBooted] = useState(false)
   const activeView = useHUDStore((s) => s.activeView)
-  const globalLayers = useHUDStore((s) => s.globalLayers)
   useKeyboardShortcuts()
 
   return (
@@ -78,9 +76,9 @@ export default function App() {
       <EntityPanel />
       <Timeline />
       <PanelControls />
-      {activeView === 'global' && <LayerToggles />}
-      {activeView === 'global' && globalLayers.has('maritime') && <ChokepointPanel />}
       {activeView === 'city' && <CityLayerToggles />}
+      {activeView === 'cyber' && <CyberDashboard />}
+      {activeView === 'cyber' && <CyberTimeline />}
       <CommandSwitcher />
     </div>
   )
