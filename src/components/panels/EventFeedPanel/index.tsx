@@ -432,7 +432,7 @@ export function EventFeedPanel() {
             mapRef.current?.flyTo({ center: [d.lng, d.lat], zoom: 14, duration: 1500 })
           },
         })),
-        ...trafficData.map(t => ({
+        ...trafficData.slice(0, 20).map(t => ({
           id: `tfc-${t.id}`,
           label: t.description || t.category.toUpperCase(),
           sublabel: `${t.category} · ${Math.round(t.delay / 60)}min delay`,
@@ -457,7 +457,7 @@ export function EventFeedPanel() {
             setPanelVisible('entity', true)
           },
         })),
-        ...crimeData.map(c => ({
+        ...crimeData.slice(0, 20).map(c => ({
           id: `crm-${c.id}`,
           label: c.type,
           sublabel: `${c.city.toUpperCase()} · ${c.description}`,
@@ -483,7 +483,7 @@ export function EventFeedPanel() {
             mapRef.current?.flyTo({ center: [a.lng, a.lat], zoom: 14, duration: 1500 })
           },
         })),
-        ...powerData.map(p => ({
+        ...powerData.slice(0, 10).map(p => ({
           id: `pwr-${p.id}`,
           label: `${p.county}, ${p.state}`,
           sublabel: `${p.utility} · ${p.customersAffected.toLocaleString()} affected`,
