@@ -9,6 +9,7 @@ import { getDensityZones, getMilitaryCandidates, getChokepoints, getDisruptions,
 import { startAis, isConnected as aisConnected } from './ais'
 import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneCache'
 import { getTrafficIncidents, setTrafficBbox, startTrafficPoller } from './trafficCache'
+import { getWeatherAlerts, setWeatherPoint, startWeatherPoller } from './weatherCache'
 import { getZones } from './zoneCache'
 import { getTLEs } from './tleCache'
 import { getSpaceWeather } from './spaceWeatherCache'
@@ -97,6 +98,14 @@ app.get('/api/drones/viewport', async (c) => {
   }
   setDroneBbox(minLng, minLat, maxLng, maxLat)
   return c.json(getDrones())
+})
+
+app.get('/api/city/weather', (c) => {
+  const lat = parseFloat(c.req.query('lat') ?? '')
+  const lng = parseFloat(c.req.query('lng') ?? '')
+  if (isNaN(lat) || isNaN(lng)) return c.json([])
+  setWeatherPoint(lat, lng)
+  return c.json(getWeatherAlerts())
 })
 
 app.get('/api/city/traffic', (c) => {
@@ -200,3 +209,4 @@ startDronePoller()
 startNewsPoller().catch((e) => console.error('[news] startup failed:', e))
 startCyberNewsPoller().catch((e) => console.error('[cyberNews] startup failed:', e))
 startTrafficPoller()
+startWeatherPoller()
