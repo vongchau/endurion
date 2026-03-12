@@ -97,7 +97,7 @@ export async function fetchPowerOutages(stateCode: string): Promise<PowerOutage[
 
   for (const record of data.results ?? []) {
     const affected = record.metersaffected ?? 0
-    if (affected === 0) continue  // skip counties with no outages
+    if (affected < 10) continue  // skip counties with negligible outages
 
     const point = record.geo_point_2d
     outages.push({
@@ -116,5 +116,5 @@ export async function fetchPowerOutages(stateCode: string): Promise<PowerOutage[
     })
   }
 
-  return outages.sort((a, b) => b.customersAffected - a.customersAffected)
+  return outages.sort((a, b) => b.customersAffected - a.customersAffected).slice(0, 25)
 }
