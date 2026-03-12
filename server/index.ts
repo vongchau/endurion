@@ -8,6 +8,7 @@ import { startPoller } from './poller'
 import { getDensityZones, getMilitaryCandidates, getChokepoints, getDisruptions, getStats, getAllVessels, getVesselsInBounds, getSnapshot, getVesselIntel } from './aisCache'
 import { startAis, isConnected as aisConnected } from './ais'
 import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneCache'
+import { getTrafficIncidents, setTrafficBbox, startTrafficPoller } from './trafficCache'
 import { getZones } from './zoneCache'
 import { getTLEs } from './tleCache'
 import { getSpaceWeather } from './spaceWeatherCache'
@@ -96,6 +97,16 @@ app.get('/api/drones/viewport', async (c) => {
   }
   setDroneBbox(minLng, minLat, maxLng, maxLat)
   return c.json(getDrones())
+})
+
+app.get('/api/city/traffic', (c) => {
+  const minLng = parseFloat(c.req.query('minLng') ?? '')
+  const minLat = parseFloat(c.req.query('minLat') ?? '')
+  const maxLng = parseFloat(c.req.query('maxLng') ?? '')
+  const maxLat = parseFloat(c.req.query('maxLat') ?? '')
+  if ([minLng, minLat, maxLng, maxLat].some(isNaN)) return c.json([])
+  setTrafficBbox(minLng, minLat, maxLng, maxLat)
+  return c.json(getTrafficIncidents())
 })
 
 app.get('/api/airspace/zones', async (c) => {
@@ -188,3 +199,4 @@ startAis()
 startDronePoller()
 startNewsPoller().catch((e) => console.error('[news] startup failed:', e))
 startCyberNewsPoller().catch((e) => console.error('[cyberNews] startup failed:', e))
+startTrafficPoller()
