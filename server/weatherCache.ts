@@ -24,11 +24,11 @@ async function poll() {
   }
 }
 
-export function setWeatherPoint(lat: number, lng: number) {
+export function setWeatherPoint(lat: number, lng: number): Promise<void> | undefined {
   const key = pointKey(lat, lng)
   if (key === lastKey) return
   lastKey = key
-  poll()
+  return poll()
 }
 
 export function startWeatherPoller() {

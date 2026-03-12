@@ -2,7 +2,7 @@
 import { useCallback } from 'react'
 import Map from 'react-map-gl/mapbox'
 import type { MapLayerMouseEvent, ViewStateChangeEvent } from 'react-map-gl/mapbox'
-import type { AISVessel, DroneFlight } from '../../types'
+import type { AISVessel, DroneFlight, NewsArticle } from '../../types'
 import { useHUDStore } from '../../store'
 import { GlobalMarkers } from '../../views/global/GlobalMarkers'
 import { CityMarkers } from '../../views/city/CityMarkers'
@@ -58,6 +58,64 @@ export function MapCanvas() {
     const feature = event.features?.[0]
     if (!feature) return
 
+    // Cluster click — expand all leaves into EntityPanel
+    if (feature.layer?.id === 'news-clusters') {
+      const clusterId = feature.properties?.cluster_id as number | undefined
+      const map = mapRef.current?.getMap()
+      if (clusterId === undefined || !map) return
+
+      const source = map.getSource('news-articles')
+      if (!source || !('getClusterLeaves' in source)) return
+
+      ;(source as { getClusterLeaves: (id: number, limit: number, offset: number, cb: (err: Error | null, features: GeoJSON.Feature[] | null) => void) => void })
+        .getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+        if (err || !leaves) return
+        const articles: NewsArticle[] = leaves.map((leaf) => {
+          const p = leaf.properties as Record<string, unknown>
+          const coords = (leaf.geometry as GeoJSON.Point).coordinates
+          return {
+            id:           String(p.id ?? ''),
+            title:        String(p.title ?? ''),
+            link:         String(p.link ?? ''),
+            source:       String(p.source ?? ''),
+            category:     (p.category ?? 'world_news') as NewsArticle['category'],
+            region:       (p.region ?? 'global') as NewsArticle['region'],
+            pubDate:      '',
+            timestamp:    Number(p.timestamp ?? 0),
+            priority:     (p.priority ?? 'low') as NewsArticle['priority'],
+            latitude:     coords[1],
+            longitude:    coords[0],
+            locationName: String(p.locationName ?? ''),
+          }
+        })
+        articles.sort((a, b) => b.timestamp - a.timestamp)
+        setSelectedEntity({ type: 'newsCluster', data: articles })
+        setPanelVisible('entity', true)
+      })
+      return
+    }
+
+    if (feature.layer?.id === 'news-points') {
+      const p = feature.properties as Record<string, unknown>
+      const news: NewsArticle = {
+        id:           String(p.id ?? ''),
+        title:        String(p.title ?? ''),
+        link:         String(p.link ?? ''),
+        source:       String(p.source ?? ''),
+        category:     (p.category ?? 'world_news') as NewsArticle['category'],
+        region:       (p.region ?? 'global') as NewsArticle['region'],
+        pubDate:      '',
+        timestamp:    Number(p.timestamp ?? 0),
+        priority:     (p.priority ?? 'low') as NewsArticle['priority'],
+        latitude:     event.lngLat.lat,
+        longitude:    event.lngLat.lng,
+        locationName: String(p.locationName ?? ''),
+      }
+      setSelectedEntity({ type: 'news', data: news })
+      setPanelVisible('entity', true)
+      return
+    }
+
     if (feature.layer?.id === 'drone-points') {
       const p = feature.properties as Record<string, unknown>
       const drone: DroneFlight = {
@@ -73,6 +131,44 @@ export function MapCanvas() {
         timestamp:     Number(p.timestamp ?? 0),
       }
       setSelectedEntity({ type: 'drone', data: drone })
+      setPanelVisible('entity', true)
+      return
+    }
+
+    if (feature.layer?.id === 'traffic-points') {
+      const p = feature.properties as Record<string, unknown>
+      setSelectedEntity({ type: 'traffic', data: {
+        id: String(p.id ?? ''), lat: event.lngLat.lat, lng: event.lngLat.lng,
+        category: String(p.category ?? 'other') as 'accident'|'congestion'|'roadClosed'|'roadWorks'|'weather'|'other',
+        severity: Number(p.severity ?? 1) as 1|2|3|4,
+        description: String(p.description ?? ''), delay: Number(p.delay ?? 0),
+        startTime: Date.now(),
+      }})
+      setPanelVisible('entity', true)
+      return
+    }
+
+    if (feature.layer?.id === 'crime-points') {
+      const p = feature.properties as Record<string, unknown>
+      setSelectedEntity({ type: 'crime', data: {
+        id: String(p.id ?? ''), lat: event.lngLat.lat, lng: event.lngLat.lng,
+        type: String(p.type ?? ''), description: String(p.type ?? ''),
+        timestamp: Date.now(), city: String(p.city ?? '') as 'chicago'|'nyc'|'la',
+        severity: String(p.severity ?? 'other') as 'violent'|'property'|'other',
+      }})
+      setPanelVisible('entity', true)
+      return
+    }
+
+    if (feature.layer?.id === 'weather-fill') {
+      const p = feature.properties as Record<string, unknown>
+      setSelectedEntity({ type: 'weatherAlert', data: {
+        id: String(p.id ?? ''), event: String(p.event ?? ''),
+        severity: String(p.severity ?? 'minor') as 'extreme'|'severe'|'moderate'|'minor',
+        urgency: 'expected' as const, headline: String(p.event ?? ''),
+        description: '', onset: Date.now(), expires: Date.now() + 3600_000,
+        geometry: null,
+      }})
       setPanelVisible('entity', true)
       return
     }
@@ -136,8 +232,8 @@ export function MapCanvas() {
         onMoveEnd={handleMoveEnd}
         onClick={handleMapClick}
         interactiveLayerIds={
-          activeView === 'global' ? ['vessel-points'] :
-          activeView === 'city' ? ['drone-points'] :
+          activeView === 'global' ? ['vessel-points', 'news-points', 'news-clusters'] :
+          activeView === 'city' ? ['drone-points', 'traffic-points', 'crime-points', 'weather-fill'] :
           []
         }
         projection={activeView === 'global' || activeView === 'space' ? 'globe' : 'mercator'}

@@ -25,11 +25,11 @@ async function poll() {
   }
 }
 
-export function setTrafficBbox(minLng: number, minLat: number, maxLng: number, maxLat: number) {
+export function setTrafficBbox(minLng: number, minLat: number, maxLng: number, maxLat: number): Promise<void> | undefined {
   const key = bboxKey(minLng, minLat, maxLng, maxLat)
   if (key === lastBbox) return
   lastBbox = key
-  poll()
+  return poll()
 }
 
 export function startTrafficPoller() {
