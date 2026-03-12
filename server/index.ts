@@ -12,6 +12,7 @@ import { getTrafficIncidents, setTrafficBbox, startTrafficPoller } from './traff
 import { getWeatherAlerts, setWeatherPoint, startWeatherPoller } from './weatherCache'
 import { getCrimeIncidents, setCrimeBbox, startCrimePoller } from './crimeCache'
 import { getLowAltAircraft, setAircraftBbox, startAircraftPoller } from './aircraftCache'
+import { getPowerOutages, setPowerLocation, startPowerPoller } from './powerCache'
 import { getZones } from './zoneCache'
 import { getTLEs } from './tleCache'
 import { getSpaceWeather } from './spaceWeatherCache'
@@ -140,6 +141,14 @@ app.get('/api/city/aircraft', (c) => {
   return c.json(getLowAltAircraft())
 })
 
+app.get('/api/city/power', (c) => {
+  const lat = parseFloat(c.req.query('lat') ?? '')
+  const lng = parseFloat(c.req.query('lng') ?? '')
+  if (isNaN(lat) || isNaN(lng)) return c.json([])
+  setPowerLocation(lat, lng)
+  return c.json(getPowerOutages())
+})
+
 app.get('/api/airspace/zones', async (c) => {
   const minLng = parseFloat(c.req.query('minLng') ?? '')
   const minLat = parseFloat(c.req.query('minLat') ?? '')
@@ -234,3 +243,4 @@ startTrafficPoller()
 startWeatherPoller()
 startCrimePoller()
 startAircraftPoller()
+startPowerPoller()
