@@ -1,8 +1,10 @@
 // src/components/panels/EntityPanel/index.tsx
+import { useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
 import { useVesselIntel } from '../../../hooks/useVesselIntel'
-import type { GlobalIncident, CyberNode, Satellite, AISVessel, DroneFlight, Severity } from '../../../types'
+import { IocExport } from '../../IocExport'
+import type { GlobalIncident, CyberNode, Satellite, AISVessel, DroneFlight, NewsArticle, CyberNewsArticle, Severity, NewsPriority } from '../../../types'
 
 const SEVERITY_BG: Record<Severity, string> = {
   critical: 'bg-hud-red/10 text-hud-red border-hud-red/30',
@@ -197,6 +199,270 @@ function VesselDetail({ data }: { data: AISVessel }) {
 
 const GAP_THRESHOLD_DISPLAY = 60 * 60 * 1000
 
+const NEWS_CATEGORY_COLORS: Record<string, string> = {
+  defense_security: '#ff2d2d', osint: '#ff2d2d',
+  humanitarian: '#ffaa00', government: '#00d4ff',
+  world_news: '#7b2fff', regional: '#7b2fff',
+  economic: '#00ff88', tech: '#00ff88',
+  think_tanks: '#4a6080', energy_resources: '#4a6080',
+}
+
+const PRIORITY_BADGE: Record<string, string> = {
+  critical: SEVERITY_BG.critical,
+  high: SEVERITY_BG.high,
+  medium: SEVERITY_BG.medium,
+  low: SEVERITY_BG.low,
+}
+
+function NewsDetail({ data }: { data: NewsArticle }) {
+  const catColor = NEWS_CATEGORY_COLORS[data.category] || '#7b2fff'
+
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${PRIORITY_BADGE[data.priority] || SEVERITY_BG.low}`}>
+        {data.priority.toUpperCase()} — {data.category.replace(/_/g, ' ').toUpperCase()}
+      </div>
+
+      <div className="mb-2">
+        <p className="font-mono text-xs text-hud-text leading-relaxed">{data.title}</p>
+      </div>
+
+      <DataRow label="SOURCE" value={data.source} />
+      <div className="flex justify-between items-start py-1.5 border-b border-hud-dim/10">
+        <span className="font-mono text-[10px] text-hud-dim tracking-wider">CATEGORY</span>
+        <span className="font-mono text-xs" style={{ color: catColor }}>
+          {data.category.replace(/_/g, ' ').toUpperCase()}
+        </span>
+      </div>
+      <DataRow label="REGION" value={data.region.replace(/_/g, ' ').toUpperCase()} />
+      <DataRow label="TIME" value={data.timestamp ? new Date(data.timestamp).toISOString().replace('T', ' ').slice(0, 19) + 'Z' : '—'} />
+      {data.locationName && <DataRow label="LOCATION" value={data.locationName} />}
+      {data.latitude !== undefined && data.longitude !== undefined && (
+        <DataRow label="LAT/LNG" value={`${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`} />
+      )}
+
+      {data.description && (
+        <div className="py-2">
+          <p className="font-mono text-[10px] text-hud-dim leading-relaxed">{data.description}</p>
+        </div>
+      )}
+
+      {data.link && (
+        <a
+          href={data.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block mt-2 mb-2 px-2 py-1.5 rounded border text-center font-mono text-[10px] tracking-widest transition-colors border-hud-cyan/30 text-hud-cyan hover:bg-hud-cyan/10"
+        >
+          OPEN SOURCE ↗
+        </a>
+      )}
+    </div>
+  )
+}
+
+const ATTACK_TYPE_COLORS: Record<string, string> = {
+  ransomware: '#ff2d2d', apt: '#ff2d2d', phishing: '#ffaa00',
+  exploit: '#ffaa00', ddos: '#7b2fff', data_breach: '#ff2d2d',
+  vulnerability: '#00d4ff', supply_chain: '#ffaa00', malware: '#ff2d2d',
+  other: '#4a6080',
+}
+
+function CyberNewsDetail({ data }: { data: CyberNewsArticle }) {
+  const sevBadge = data.severity === 'critical' ? SEVERITY_BG.critical
+    : data.severity === 'high' ? SEVERITY_BG.high
+    : data.severity === 'medium' ? SEVERITY_BG.medium
+    : SEVERITY_BG.low
+  const attackColor = ATTACK_TYPE_COLORS[data.attackType] || '#4a6080'
+
+  return (
+    <div className="px-3 pt-2">
+      <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${sevBadge}`}>
+        {data.severity.toUpperCase()} — {data.attackType.replace(/_/g, ' ').toUpperCase()}
+      </div>
+
+      <div className="mb-2">
+        <p className="font-mono text-xs text-hud-text leading-relaxed">{data.title}</p>
+      </div>
+
+      <DataRow label="SOURCE" value={data.source} />
+      <div className="flex justify-between items-start py-1.5 border-b border-hud-dim/10">
+        <span className="font-mono text-[10px] text-hud-dim tracking-wider">ATTACK TYPE</span>
+        <span className="font-mono text-xs" style={{ color: attackColor }}>
+          {data.attackType.replace(/_/g, ' ').toUpperCase()}
+        </span>
+      </div>
+
+      {data.sourceActor && (
+        <div className="flex justify-between items-start py-1.5 border-b border-hud-dim/10">
+          <span className="font-mono text-[10px] text-hud-dim tracking-wider">ACTOR</span>
+          <span className="font-mono text-xs text-hud-red">{data.sourceActor}</span>
+        </div>
+      )}
+      {data.sourceCountry && <DataRow label="ACTOR ORIGIN" value={data.sourceCountry.toUpperCase()} />}
+
+      {data.target && (
+        <div className="flex justify-between items-start py-1.5 border-b border-hud-dim/10">
+          <span className="font-mono text-[10px] text-hud-dim tracking-wider">TARGET</span>
+          <span className="font-mono text-xs text-hud-cyan">{data.target}</span>
+        </div>
+      )}
+      {data.targetCountry && <DataRow label="TARGET COUNTRY" value={data.targetCountry.toUpperCase()} />}
+
+      <DataRow label="TIME" value={data.timestamp ? new Date(data.timestamp).toISOString().replace('T', ' ').slice(0, 19) + 'Z' : '—'} />
+
+      {data.malwareFamily.length > 0 && (
+        <>
+          <SectionHeader label="MALWARE" color="#ff2d2d" />
+          <div className="flex flex-wrap gap-1 mb-2">
+            {data.malwareFamily.map(m => (
+              <span key={m} className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-hud-red/10 text-hud-red border border-hud-red/20">
+                {m}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      {data.cves.length > 0 && (
+        <>
+          <SectionHeader label="CVEs" color="#ffaa00" />
+          <div className="flex flex-wrap gap-1 mb-2">
+            {data.cves.map(c => (
+              <span key={c} className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-hud-amber/10 text-hud-amber border border-hud-amber/20">
+                {c}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      {data.iocs.length > 0 && (
+        <>
+          <SectionHeader label="IOCs" color="#7b2fff" />
+          <div className="space-y-0.5 mb-2">
+            {data.iocs.slice(0, 10).map(ioc => (
+              <div key={ioc} className="font-mono text-[9px] text-hud-purple px-1">{ioc}</div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {data.mitreTactics.length > 0 && (
+        <>
+          <SectionHeader label="MITRE ATT&CK" color="#00d4ff" />
+          <div className="flex flex-wrap gap-1 mb-2">
+            {data.mitreTactics.map(t => (
+              <span key={t} className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-hud-cyan/10 text-hud-cyan border border-hud-cyan/20">
+                {t}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      <IocExport
+        iocs={data.iocs}
+        cves={data.cves}
+        malware={data.malwareFamily}
+        actor={data.sourceActor}
+        title={data.title}
+      />
+
+      {data.description && (
+        <div className="py-2">
+          <p className="font-mono text-[10px] text-hud-dim leading-relaxed">{data.description}</p>
+        </div>
+      )}
+
+      {data.link && (
+        <a
+          href={data.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block mt-2 mb-2 px-2 py-1.5 rounded border text-center font-mono text-[10px] tracking-widest transition-colors border-hud-cyan/30 text-hud-cyan hover:bg-hud-cyan/10"
+        >
+          OPEN SOURCE ↗
+        </a>
+      )}
+    </div>
+  )
+}
+
+const CLUSTER_PRIORITY_COLORS: Record<NewsPriority, string> = {
+  critical: '#ff2d2d',
+  high: '#ffaa00',
+  medium: '#00d4ff',
+  low: '#4a6080',
+}
+
+function NewsClusterDetail({ data, onSelectArticle }: { data: NewsArticle[]; onSelectArticle: (a: NewsArticle) => void }) {
+  const byCategory = new Map<string, number>()
+  for (const a of data) byCategory.set(a.category, (byCategory.get(a.category) ?? 0) + 1)
+  const categories = [...byCategory.entries()].sort((a, b) => b[1] - a[1])
+
+  return (
+    <div className="px-3 pt-2">
+      <div className="mb-2 px-2 py-1 rounded border text-[10px] font-mono bg-hud-purple/10 text-hud-purple border-hud-purple/30">
+        CLUSTER — {data.length} EVENTS
+      </div>
+
+      {/* Category breakdown */}
+      <div className="flex flex-wrap gap-1 mb-3">
+        {categories.map(([cat, count]) => (
+          <span
+            key={cat}
+            className="px-1.5 py-0.5 rounded text-[8px] font-mono border"
+            style={{
+              color: NEWS_CATEGORY_COLORS[cat] || '#7b2fff',
+              borderColor: `${NEWS_CATEGORY_COLORS[cat] || '#7b2fff'}40`,
+              backgroundColor: `${NEWS_CATEGORY_COLORS[cat] || '#7b2fff'}10`,
+            }}
+          >
+            {cat.replace(/_/g, ' ').toUpperCase()} ({count})
+          </span>
+        ))}
+      </div>
+
+      {/* Article list */}
+      <div className="space-y-0">
+        {data.map((article) => {
+          const priorityColor = CLUSTER_PRIORITY_COLORS[article.priority]
+          const ago = Date.now() - article.timestamp
+          const timeStr = ago < 3600_000 ? `${Math.round(ago / 60_000)}m`
+            : ago < 86400_000 ? `${Math.round(ago / 3600_000)}h`
+            : `${Math.round(ago / 86400_000)}d`
+
+          return (
+            <button
+              key={article.id}
+              onClick={() => onSelectArticle(article)}
+              className="w-full text-left px-2 py-2 border-b border-hud-dim/10 hover:bg-hud-cyan/5 transition-colors"
+            >
+              <div className="flex items-start gap-2">
+                <span
+                  className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: priorityColor }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-mono text-[10px] text-hud-text leading-snug line-clamp-2">{article.title}</div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="font-mono text-[8px] text-hud-dim">{article.source}</span>
+                    {article.locationName && (
+                      <span className="font-mono text-[8px] text-hud-purple truncate">{article.locationName}</span>
+                    )}
+                    <span className="font-mono text-[8px] text-hud-dim/50 ml-auto shrink-0">{timeStr}</span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function DroneDetail({ data }: { data: DroneFlight }) {
   const isAirborne = data.state === 'airborne' || data.altitude > 5
   const badge = isAirborne ? SEVERITY_BG.medium : SEVERITY_BG.nominal
@@ -231,6 +497,14 @@ export function EntityPanel() {
   const panels = useHUDStore((s) => s.panels)
   const selectedEntity = useHUDStore((s) => s.selectedEntity)
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
+  // Stash cluster data so we can navigate back from a drilled-down article
+  const clusterRef = useRef<NewsArticle[] | null>(null)
+  const canGoBack = clusterRef.current !== null && selectedEntity?.type === 'news'
+
+  // Clear stash when entity changes to something other than news or newsCluster
+  if (selectedEntity && selectedEntity.type !== 'news' && selectedEntity.type !== 'newsCluster') {
+    clusterRef.current = null
+  }
 
   return (
     <AnimatePresence>
@@ -243,11 +517,22 @@ export function EntityPanel() {
         >
           <div className="flex items-center justify-between px-3 py-2 border-b border-hud-cyan/20">
             <div className="flex items-center gap-2">
+              {canGoBack && (
+                <button
+                  onClick={() => setSelectedEntity({ type: 'newsCluster', data: clusterRef.current! })}
+                  className="font-mono text-[10px] text-hud-dim hover:text-hud-cyan transition-colors mr-1"
+                  title="Back to cluster"
+                >
+                  ←
+                </button>
+              )}
               <div className="w-1 h-4 bg-hud-purple rounded-full" />
-              <span className="font-mono text-[10px] tracking-widest text-hud-purple">ENTITY DETAILS</span>
+              <span className="font-mono text-[10px] tracking-widest text-hud-purple">
+                {canGoBack ? 'ARTICLE DETAIL' : 'ENTITY DETAILS'}
+              </span>
             </div>
             {selectedEntity && (
-              <button onClick={() => setSelectedEntity(null)} className="text-hud-dim hover:text-hud-text font-mono text-xs">×</button>
+              <button onClick={() => { clusterRef.current = null; setSelectedEntity(null) }} className="text-hud-dim hover:text-hud-text font-mono text-xs">×</button>
             )}
           </div>
 
@@ -264,6 +549,17 @@ export function EntityPanel() {
               {selectedEntity.type === 'satellite' && <SatelliteDetail data={selectedEntity.data as Satellite} />}
               {selectedEntity.type === 'vessel' && <VesselDetail data={selectedEntity.data as AISVessel} />}
               {selectedEntity.type === 'drone' && <DroneDetail data={selectedEntity.data as DroneFlight} />}
+              {selectedEntity.type === 'news' && <NewsDetail data={selectedEntity.data as NewsArticle} />}
+              {selectedEntity.type === 'cyberNews' && <CyberNewsDetail data={selectedEntity.data as CyberNewsArticle} />}
+              {selectedEntity.type === 'newsCluster' && (
+                <NewsClusterDetail
+                  data={selectedEntity.data as NewsArticle[]}
+                  onSelectArticle={(a) => {
+                    clusterRef.current = selectedEntity.data as NewsArticle[]
+                    setSelectedEntity({ type: 'news', data: a })
+                  }}
+                />
+              )}
             </div>
           )}
         </motion.div>
