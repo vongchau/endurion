@@ -1,33 +1,28 @@
 // src/views/cyber/CyberLayer.tsx
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useMemo } from 'react'
 import { Marker, useMap } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
-import { useCyberGraph } from '../../hooks/useCyberGraph'
-import type { CyberNode, CyberGraph } from '../../types'
+import { useCyberNews } from '../../hooks/useCyberNews'
+import type { CyberNewsNode, CyberNewsGraph, CyberNewsArticle } from '../../types'
 
-const NODE_COLORS: Record<CyberNode['type'], string> = {
+const NODE_COLORS: Record<CyberNewsNode['type'], string> = {
   actor: '#ff2d2d',
-  compromised: '#ffaa00',
-  cluster: '#7b2fff',
-  asset: '#00d4ff',
+  target: '#00d4ff',
 }
 
-const NODE_SIZES: Record<CyberNode['type'], { outer: string; inner: string }> = {
+const NODE_SIZES: Record<CyberNewsNode['type'], { outer: string; inner: string }> = {
   actor: { outer: 'w-10 h-10', inner: 'w-2.5 h-2.5' },
-  asset: { outer: 'w-8 h-8', inner: 'w-2 h-2' },
-  cluster: { outer: 'w-5 h-5', inner: 'w-1.5 h-1.5' },
-  compromised: { outer: 'w-6 h-6', inner: 'w-2 h-2' },
+  target: { outer: 'w-8 h-8', inner: 'w-2 h-2' },
 }
 
 function useAnimatedEdges(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
   getPixel: (lng: number, lat: number) => [number, number] | null,
-  graph: CyberGraph | null
+  graph: CyberNewsGraph | null
 ) {
   const animRef = useRef<number>(0)
   const progressRef = useRef<number[]>([])
 
-  // Re-initialize progress when edge count changes
   useEffect(() => {
     const edgeCount = graph?.edges.length ?? 0
     if (progressRef.current.length !== edgeCount) {
@@ -54,15 +49,14 @@ function useAnimatedEdges(
         const dstPx = getPixel(dst.lng, dst.lat)
         if (!srcPx || !dstPx) return
 
-        const color = edge.threatScore > 80 ? '#ff2d2d' : edge.threatScore > 60 ? '#ffaa00' : '#00d4ff'
-        const isMicro = edge.targetId.startsWith('evt-')
+        const color = edge.threatScore > 80 ? '#ff2d2d' : edge.threatScore > 50 ? '#ffaa00' : '#00d4ff'
 
         // Draw edge line
         ctx.beginPath()
         ctx.moveTo(srcPx[0], srcPx[1])
         ctx.lineTo(dstPx[0], dstPx[1])
-        ctx.strokeStyle = `${color}${isMicro ? '20' : '40'}`
-        ctx.lineWidth = isMicro ? 1 : 2
+        ctx.strokeStyle = `${color}40`
+        ctx.lineWidth = Math.min(edge.articleCount, 4)
         ctx.stroke()
 
         // Animate data packet dot
@@ -72,7 +66,7 @@ function useAnimatedEdges(
         const px = srcPx[0] + (dstPx[0] - srcPx[0]) * t
         const py = srcPx[1] + (dstPx[1] - srcPx[1]) * t
         ctx.beginPath()
-        ctx.arc(px, py, isMicro ? 1.5 : 2.5, 0, Math.PI * 2)
+        ctx.arc(px, py, 2.5, 0, Math.PI * 2)
         ctx.fillStyle = color
         ctx.shadowBlur = 6
         ctx.shadowColor = color
@@ -93,7 +87,23 @@ export function CyberLayer() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
-  const { graph, loading } = useCyberGraph()
+  const { graph, articles, loading } = useCyberNews()
+
+  // Build a lookup: node id → first matching article for entity panel
+  const nodeArticleMap = useMemo(() => {
+    const map = new Map<string, CyberNewsArticle>()
+    for (const a of articles) {
+      if (a.sourceActor) {
+        const actorId = `actor-${a.sourceActor.toLowerCase().replace(/\s+/g, '-')}`
+        if (!map.has(actorId)) map.set(actorId, a)
+      }
+      if (a.target) {
+        const targetId = `target-${a.target.toLowerCase().replace(/\s+/g, '-')}`
+        if (!map.has(targetId)) map.set(targetId, a)
+      }
+    }
+    return map
+  }, [articles])
 
   const getPixel = useCallback((lng: number, lat: number): [number, number] | null => {
     if (!map) return null
@@ -121,7 +131,7 @@ export function CyberLayer() {
     return (
       <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
         <span className="text-cyan-400 font-mono text-sm tracking-widest animate-pulse">
-          SYNCING THREAT FEED...
+          SYNCING CYBER THREAT INTEL...
         </span>
       </div>
     )
@@ -131,7 +141,7 @@ export function CyberLayer() {
     return (
       <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
         <span className="text-dim font-mono text-sm tracking-widest">
-          NO ACTIVE THREATS DETECTED
+          AWAITING THREAT EXTRACTION...
         </span>
       </div>
     )
@@ -153,8 +163,24 @@ export function CyberLayer() {
           <Marker key={node.id} longitude={node.lng} latitude={node.lat} anchor="center">
             <button
               onClick={() => {
-                setSelectedEntity({ type: 'node', data: node })
-                setPanelVisible('entity', true)
+                if (node.type === 'actor') {
+                  // Fetch actor profile
+                  fetch(`/api/cyber/actor/${encodeURIComponent(node.label)}`)
+                    .then(res => res.ok ? res.json() : null)
+                    .then(profile => {
+                      if (profile) {
+                        setSelectedEntity({ type: 'actorProfile', data: profile })
+                        setPanelVisible('entity', true)
+                      }
+                    })
+                    .catch(() => {})
+                } else {
+                  const article = nodeArticleMap.get(node.id)
+                  if (article) {
+                    setSelectedEntity({ type: 'cyberNews', data: article })
+                    setPanelVisible('entity', true)
+                  }
+                }
               }}
               className={`relative flex items-center justify-center ${sizes.outer} rounded-full border-2 backdrop-blur-sm hover:scale-125 transition-transform`}
               style={{
@@ -162,8 +188,15 @@ export function CyberLayer() {
                 backgroundColor: `${color}15`,
                 boxShadow: `0 0 10px ${color}60`,
               }}
+              title={`${node.label} — ${node.type.toUpperCase()} (${node.articleCount} articles)`}
             >
               <span className={`${sizes.inner} rounded-full`} style={{ backgroundColor: color }} />
+              {node.articleCount > 1 && (
+                <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full bg-hud-panel border text-[7px] font-mono flex items-center justify-center"
+                  style={{ borderColor: color, color }}>
+                  {node.articleCount}
+                </span>
+              )}
             </button>
           </Marker>
         )
