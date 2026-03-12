@@ -249,7 +249,7 @@ export interface ThreatStats {
   activeTargets: number
   criticalCount24h: number
   highCount24h: number
-  topAttackTypes: { type: string; count: number }[]
+  topAttackTypes: { name: string; count: number }[]
   topActors: { name: string; count: number; severity: string }[]
   topTargets: { name: string; count: number }[]
   topMalware: { name: string; count: number }[]

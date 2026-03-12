@@ -36,7 +36,7 @@ export function CyberDashboard() {
         <StatBox label="CRIT/24H" value={stats.criticalCount24h} color={stats.criticalCount24h > 0 ? '#ff2d2d' : '#4a6080'} />
         <StatBox label="HIGH/24H" value={stats.highCount24h} color={stats.highCount24h > 0 ? '#ffaa00' : '#4a6080'} />
         {stats.topAttackTypes[0] && (
-          <StatBox label="TOP TYPE" value={stats.topAttackTypes[0].type.replace(/_/g, ' ').toUpperCase()} color="#7b2fff" />
+          <StatBox label="TOP TYPE" value={stats.topAttackTypes[0].name.replace(/_/g, ' ').toUpperCase()} color="#7b2fff" />
         )}
         {stats.topActors[0] && (
           <StatBox
