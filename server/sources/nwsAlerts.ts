@@ -1,10 +1,15 @@
 // server/sources/nwsAlerts.ts
 import type { WeatherAlert } from '../../src/types'
+import { resolveState } from './odinPower'
 
 const USER_AGENT = '(endurion-hud, ops@endurion.dev)'
 
 export async function fetchWeatherAlerts(lat: number, lng: number): Promise<WeatherAlert[]> {
-  const url = `https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lng.toFixed(4)}&status=actual`
+  // Use state-level query for broader coverage — point queries miss most alerts
+  const state = resolveState(lat, lng)
+  const url = state
+    ? `https://api.weather.gov/alerts/active?area=${state}&status=actual`
+    : `https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lng.toFixed(4)}&status=actual`
 
   const res = await fetch(url, {
     headers: { 'User-Agent': USER_AGENT, Accept: 'application/geo+json' },
