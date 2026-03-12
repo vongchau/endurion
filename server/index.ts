@@ -11,6 +11,7 @@ import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneC
 import { getTrafficIncidents, setTrafficBbox, startTrafficPoller } from './trafficCache'
 import { getWeatherAlerts, setWeatherPoint, startWeatherPoller } from './weatherCache'
 import { getCrimeIncidents, setCrimeBbox, startCrimePoller } from './crimeCache'
+import { getLowAltAircraft, setAircraftBbox, startAircraftPoller } from './aircraftCache'
 import { getZones } from './zoneCache'
 import { getTLEs } from './tleCache'
 import { getSpaceWeather } from './spaceWeatherCache'
@@ -129,6 +130,16 @@ app.get('/api/city/traffic', (c) => {
   return c.json(getTrafficIncidents())
 })
 
+app.get('/api/city/aircraft', (c) => {
+  const minLng = parseFloat(c.req.query('minLng') ?? '')
+  const minLat = parseFloat(c.req.query('minLat') ?? '')
+  const maxLng = parseFloat(c.req.query('maxLng') ?? '')
+  const maxLat = parseFloat(c.req.query('maxLat') ?? '')
+  if ([minLng, minLat, maxLng, maxLat].some(isNaN)) return c.json([])
+  setAircraftBbox(minLng, minLat, maxLng, maxLat)
+  return c.json(getLowAltAircraft())
+})
+
 app.get('/api/airspace/zones', async (c) => {
   const minLng = parseFloat(c.req.query('minLng') ?? '')
   const minLat = parseFloat(c.req.query('minLat') ?? '')
@@ -222,3 +233,4 @@ startCyberNewsPoller().catch((e) => console.error('[cyberNews] startup failed:',
 startTrafficPoller()
 startWeatherPoller()
 startCrimePoller()
+startAircraftPoller()
