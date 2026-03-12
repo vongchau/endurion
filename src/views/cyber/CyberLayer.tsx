@@ -3,6 +3,7 @@ import { useEffect, useRef, useCallback, useMemo } from 'react'
 import { Marker, useMap } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
 import { useCyberNews } from '../../hooks/useCyberNews'
+import { CyberHeatmap } from './CyberHeatmap'
 import type { CyberNewsNode, CyberNewsGraph, CyberNewsArticle } from '../../types'
 
 const NODE_COLORS: Record<CyberNewsNode['type'], string> = {
@@ -87,6 +88,7 @@ export function CyberLayer() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
+  const cyberPanel = useHUDStore((s) => s.cyberPanel)
   const { graph, articles, loading } = useCyberNews()
 
   // Build a lookup: node id → first matching article for entity panel
@@ -112,6 +114,50 @@ export function CyberLayer() {
   }, [map])
 
   useAnimatedEdges(canvasRef, getPixel, graph)
+
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!graph || cyberPanel !== 'graph') return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+
+    const nodeMap = new Map(graph.nodes.map(n => [n.id, n]))
+
+    for (const edge of graph.edges) {
+      const src = nodeMap.get(edge.sourceId)
+      const dst = nodeMap.get(edge.targetId)
+      if (!src || !dst) continue
+
+      const srcPx = getPixel(src.lng, src.lat)
+      const dstPx = getPixel(dst.lng, dst.lat)
+      if (!srcPx || !dstPx) continue
+
+      // Distance from point to line segment
+      const dx = dstPx[0] - srcPx[0]
+      const dy = dstPx[1] - srcPx[1]
+      const lenSq = dx * dx + dy * dy
+      if (lenSq === 0) continue
+
+      const t = Math.max(0, Math.min(1, ((mx - srcPx[0]) * dx + (my - srcPx[1]) * dy) / lenSq))
+      const projX = srcPx[0] + t * dx
+      const projY = srcPx[1] + t * dy
+      const dist = Math.sqrt((mx - projX) ** 2 + (my - projY) ** 2)
+
+      if (dist < 8) {
+        // Fetch articles for this edge
+        fetch(`/api/cyber/edge-articles?actorId=${encodeURIComponent(edge.sourceId)}&targetId=${encodeURIComponent(edge.targetId)}`)
+          .then(res => res.ok ? res.json() : [])
+          .then(articles => {
+            if (articles.length > 0) {
+              setSelectedEntity({ type: 'edgeDetail', data: articles })
+              setPanelVisible('entity', true)
+            }
+          })
+          .catch(() => {})
+        return
+      }
+    }
+  }, [graph, cyberPanel, getPixel, setSelectedEntity, setPanelVisible])
 
   // Sync canvas size to map
   useEffect(() => {
@@ -149,58 +195,65 @@ export function CyberLayer() {
 
   return (
     <>
-      {/* Canvas for animated edges */}
-      <canvas
-        ref={canvasRef}
-        style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 10 }}
-      />
+      {cyberPanel === 'heatmap' && <CyberHeatmap />}
 
-      {/* Node markers */}
-      {graph.nodes.map((node) => {
-        const color = NODE_COLORS[node.type]
-        const sizes = NODE_SIZES[node.type]
-        return (
-          <Marker key={node.id} longitude={node.lng} latitude={node.lat} anchor="center">
-            <button
-              onClick={() => {
-                if (node.type === 'actor') {
-                  // Fetch actor profile
-                  fetch(`/api/cyber/actor/${encodeURIComponent(node.label)}`)
-                    .then(res => res.ok ? res.json() : null)
-                    .then(profile => {
-                      if (profile) {
-                        setSelectedEntity({ type: 'actorProfile', data: profile })
+      {cyberPanel === 'graph' && (
+        <>
+          {/* Canvas for animated edges */}
+          <canvas
+            ref={canvasRef}
+            onClick={handleCanvasClick}
+            style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'auto', zIndex: 10, cursor: 'crosshair' }}
+          />
+
+          {/* Node markers */}
+          {graph.nodes.map((node) => {
+            const color = NODE_COLORS[node.type]
+            const sizes = NODE_SIZES[node.type]
+            return (
+              <Marker key={node.id} longitude={node.lng} latitude={node.lat} anchor="center">
+                <button
+                  onClick={() => {
+                    if (node.type === 'actor') {
+                      // Fetch actor profile
+                      fetch(`/api/cyber/actor/${encodeURIComponent(node.label)}`)
+                        .then(res => res.ok ? res.json() : null)
+                        .then(profile => {
+                          if (profile) {
+                            setSelectedEntity({ type: 'actorProfile', data: profile })
+                            setPanelVisible('entity', true)
+                          }
+                        })
+                        .catch(() => {})
+                    } else {
+                      const article = nodeArticleMap.get(node.id)
+                      if (article) {
+                        setSelectedEntity({ type: 'cyberNews', data: article })
                         setPanelVisible('entity', true)
                       }
-                    })
-                    .catch(() => {})
-                } else {
-                  const article = nodeArticleMap.get(node.id)
-                  if (article) {
-                    setSelectedEntity({ type: 'cyberNews', data: article })
-                    setPanelVisible('entity', true)
-                  }
-                }
-              }}
-              className={`relative flex items-center justify-center ${sizes.outer} rounded-full border-2 backdrop-blur-sm hover:scale-125 transition-transform`}
-              style={{
-                borderColor: color,
-                backgroundColor: `${color}15`,
-                boxShadow: `0 0 10px ${color}60`,
-              }}
-              title={`${node.label} — ${node.type.toUpperCase()} (${node.articleCount} articles)`}
-            >
-              <span className={`${sizes.inner} rounded-full`} style={{ backgroundColor: color }} />
-              {node.articleCount > 1 && (
-                <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full bg-hud-panel border text-[7px] font-mono flex items-center justify-center"
-                  style={{ borderColor: color, color }}>
-                  {node.articleCount}
-                </span>
-              )}
-            </button>
-          </Marker>
-        )
-      })}
+                    }
+                  }}
+                  className={`relative flex items-center justify-center ${sizes.outer} rounded-full border-2 backdrop-blur-sm hover:scale-125 transition-transform`}
+                  style={{
+                    borderColor: color,
+                    backgroundColor: `${color}15`,
+                    boxShadow: `0 0 10px ${color}60`,
+                  }}
+                  title={`${node.label} — ${node.type.toUpperCase()} (${node.articleCount} articles)`}
+                >
+                  <span className={`${sizes.inner} rounded-full`} style={{ backgroundColor: color }} />
+                  {node.articleCount > 1 && (
+                    <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full bg-hud-panel border text-[7px] font-mono flex items-center justify-center"
+                      style={{ borderColor: color, color }}>
+                      {node.articleCount}
+                    </span>
+                  )}
+                </button>
+              </Marker>
+            )
+          })}
+        </>
+      )}
     </>
   )
 }

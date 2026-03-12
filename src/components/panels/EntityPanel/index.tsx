@@ -276,12 +276,31 @@ function CyberNewsDetail({ data }: { data: CyberNewsArticle }) {
     : data.severity === 'medium' ? SEVERITY_BG.medium
     : SEVERITY_BG.low
   const attackColor = ATTACK_TYPE_COLORS[data.attackType] || '#4a6080'
+  const addToWatchlist = useHUDStore((s) => s.addToWatchlist)
+  const removeFromWatchlist = useHUDStore((s) => s.removeFromWatchlist)
+  const watchlist = useHUDStore((s) => s.watchlist)
 
   return (
     <div className="px-3 pt-2">
       <div className={`mb-2 px-2 py-1 rounded border text-[10px] font-mono ${sevBadge}`}>
         {data.severity.toUpperCase()} — {data.attackType.replace(/_/g, ' ').toUpperCase()}
       </div>
+
+      {data.sourceActor && (
+        <button
+          onClick={() => {
+            const key = data.sourceActor!.toLowerCase()
+            watchlist.has(key) ? removeFromWatchlist(key) : addToWatchlist(key)
+          }}
+          className="w-full mb-1 px-2 py-1 rounded border text-center font-mono text-[9px] tracking-wider transition-colors"
+          style={{
+            borderColor: watchlist.has(data.sourceActor!.toLowerCase()) ? '#00ff8840' : '#4a608040',
+            color: watchlist.has(data.sourceActor!.toLowerCase()) ? '#00ff88' : '#4a6080',
+          }}
+        >
+          {watchlist.has(data.sourceActor!.toLowerCase()) ? `WATCHING: ${data.sourceActor}` : `WATCH: ${data.sourceActor}`}
+        </button>
+      )}
 
       <div className="mb-2">
         <p className="font-mono text-xs text-hud-text leading-relaxed">{data.title}</p>
@@ -459,6 +478,53 @@ function NewsClusterDetail({ data, onSelectArticle }: { data: NewsArticle[]; onS
   )
 }
 
+function EdgeDetail({ articles, onSelectArticle }: { articles: CyberNewsArticle[]; onSelectArticle: (a: CyberNewsArticle) => void }) {
+  if (articles.length === 0) return null
+
+  const actor = articles[0]?.sourceActor ?? 'Unknown'
+  const target = articles[0]?.target ?? 'Unknown'
+
+  return (
+    <div className="px-3 pt-2">
+      <div className="mb-2 px-2 py-1 rounded border text-[10px] font-mono bg-hud-red/10 text-hud-red border-hud-red/30">
+        ATTACK PATH — {articles.length} ARTICLES
+      </div>
+      <div className="flex items-center justify-between py-1.5 border-b border-hud-dim/10">
+        <span className="font-mono text-[10px] text-hud-red">{actor}</span>
+        <span className="font-mono text-[10px] text-hud-dim">→</span>
+        <span className="font-mono text-[10px] text-hud-cyan">{target}</span>
+      </div>
+
+      <div className="space-y-0 mt-2">
+        {articles.map(a => {
+          const ago = Date.now() - a.timestamp
+          const timeStr = ago < 3600_000 ? `${Math.round(ago / 60_000)}m`
+            : ago < 86400_000 ? `${Math.round(ago / 3600_000)}h`
+            : `${Math.round(ago / 86400_000)}d`
+          return (
+            <button
+              key={a.id}
+              onClick={() => onSelectArticle(a)}
+              className="w-full text-left px-2 py-2 border-b border-hud-dim/10 hover:bg-hud-cyan/5 transition-colors"
+            >
+              <div className="font-mono text-[10px] text-hud-text leading-snug line-clamp-2">{a.title}</div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="font-mono text-[8px]" style={{
+                  color: a.severity === 'critical' ? '#ff2d2d' : a.severity === 'high' ? '#ffaa00' : '#00d4ff'
+                }}>
+                  {a.severity.toUpperCase()}
+                </span>
+                <span className="font-mono text-[8px] text-hud-dim">{a.attackType.replace(/_/g, ' ')}</span>
+                <span className="font-mono text-[8px] text-hud-dim/50 ml-auto">{timeStr}</span>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function DroneDetail({ data }: { data: DroneFlight }) {
   const isAirborne = data.state === 'airborne' || data.altitude > 5
   const badge = isAirborne ? SEVERITY_BG.medium : SEVERITY_BG.nominal
@@ -558,6 +624,12 @@ export function EntityPanel() {
               )}
               {selectedEntity.type === 'actorProfile' && (
                 <ActorProfileDetail profile={selectedEntity.data as ActorProfile} />
+              )}
+              {selectedEntity.type === 'edgeDetail' && (
+                <EdgeDetail
+                  articles={selectedEntity.data as CyberNewsArticle[]}
+                  onSelectArticle={(a) => setSelectedEntity({ type: 'cyberNews', data: a })}
+                />
               )}
             </div>
           )}
