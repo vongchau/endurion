@@ -10,6 +10,7 @@ import { startAis, isConnected as aisConnected } from './ais'
 import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneCache'
 import { getTrafficIncidents, setTrafficBbox, startTrafficPoller } from './trafficCache'
 import { getWeatherAlerts, setWeatherPoint, startWeatherPoller } from './weatherCache'
+import { getCrimeIncidents, setCrimeBbox, startCrimePoller } from './crimeCache'
 import { getZones } from './zoneCache'
 import { getTLEs } from './tleCache'
 import { getSpaceWeather } from './spaceWeatherCache'
@@ -106,6 +107,16 @@ app.get('/api/city/weather', (c) => {
   if (isNaN(lat) || isNaN(lng)) return c.json([])
   setWeatherPoint(lat, lng)
   return c.json(getWeatherAlerts())
+})
+
+app.get('/api/city/crime', (c) => {
+  const minLng = parseFloat(c.req.query('minLng') ?? '')
+  const minLat = parseFloat(c.req.query('minLat') ?? '')
+  const maxLng = parseFloat(c.req.query('maxLng') ?? '')
+  const maxLat = parseFloat(c.req.query('maxLat') ?? '')
+  if ([minLng, minLat, maxLng, maxLat].some(isNaN)) return c.json([])
+  setCrimeBbox(minLng, minLat, maxLng, maxLat)
+  return c.json(getCrimeIncidents())
 })
 
 app.get('/api/city/traffic', (c) => {
@@ -210,3 +221,4 @@ startNewsPoller().catch((e) => console.error('[news] startup failed:', e))
 startCyberNewsPoller().catch((e) => console.error('[cyberNews] startup failed:', e))
 startTrafficPoller()
 startWeatherPoller()
+startCrimePoller()
