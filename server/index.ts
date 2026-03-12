@@ -11,7 +11,11 @@ import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneC
 import { getZones } from './zoneCache'
 import { getTLEs } from './tleCache'
 import { getSpaceWeather } from './spaceWeatherCache'
-import { getCyberGraph, startCyberPoller } from './cyberCache'
+import { getNewsFiltered, getNewsGeolocated, getNewsSources, startNewsPoller } from './rssNewsCache'
+import { getCyberNews, getCyberNewsGraph, getCyberNewsSources, startCyberNewsPoller } from './cyberNewsCache'
+import { getCveDetails } from './cveCache'
+import { getTactics } from './mitreData'
+import { getThreatStats, getMitreHeatmap, getCampaigns, getActorProfile, getTemporalData, getGeoHeatmap, getEdgeArticles } from './cyberAggregations'
 
 const app = new Hono()
 
@@ -117,16 +121,70 @@ app.get('/api/tle', async (c) => {
   return c.json(tles)
 })
 
-app.get('/api/cyber/graph', (c) => c.json(getCyberGraph()))
+app.get('/api/news', async (c) => {
+  return c.json(getNewsFiltered({
+    category: c.req.query('category'),
+    region: c.req.query('region'),
+    search: c.req.query('search'),
+    limit: parseInt(c.req.query('limit') ?? '') || 200,
+    offset: parseInt(c.req.query('offset') ?? '') || 0,
+  }))
+})
+app.get('/api/news/geolocated', (c) => c.json(getNewsGeolocated()))
+app.get('/api/news/sources', (c) => c.json(getNewsSources()))
+
+app.get('/api/cyber/news', (c) => {
+  return c.json(getCyberNews({
+    attackType: c.req.query('attackType'),
+    severity: c.req.query('severity'),
+    search: c.req.query('search'),
+    limit: parseInt(c.req.query('limit') ?? '') || 200,
+    offset: parseInt(c.req.query('offset') ?? '') || 0,
+  }))
+})
+app.get('/api/cyber/news/graph', (c) => c.json(getCyberNewsGraph()))
+app.get('/api/cyber/news/sources', (c) => c.json(getCyberNewsSources()))
+
+app.get('/api/cyber/cve', async (c) => {
+  const ids = c.req.query('ids')?.split(',').filter(Boolean) ?? []
+  if (ids.length === 0) return c.json({ error: 'Missing ids param' }, 400)
+  if (ids.length > 10) return c.json({ error: 'Max 10 CVEs per request' }, 400)
+  const details = await getCveDetails(ids)
+  return c.json(details)
+})
+
+app.get('/api/cyber/mitre/tactics', (c) => c.json(getTactics()))
+
+app.get('/api/cyber/stats', (c) => c.json(getThreatStats()))
+app.get('/api/cyber/mitre/heatmap', (c) => c.json(getMitreHeatmap()))
+app.get('/api/cyber/campaigns', (c) => c.json(getCampaigns()))
+app.get('/api/cyber/actor/:name', (c) => {
+  const name = decodeURIComponent(c.req.param('name'))
+  const profile = getActorProfile(name)
+  if (!profile) return c.json({ error: 'Actor not found' }, 404)
+  return c.json(profile)
+})
+app.get('/api/cyber/temporal', (c) => {
+  const hours = parseInt(c.req.query('hours') ?? '') || 168
+  return c.json(getTemporalData(hours))
+})
+app.get('/api/cyber/heatmap', (c) => c.json(getGeoHeatmap()))
+app.get('/api/cyber/edge-articles', (c) => {
+  const actorId = c.req.query('actorId') ?? ''
+  const targetId = c.req.query('targetId') ?? ''
+  if (!actorId || !targetId) return c.json({ error: 'Missing actorId or targetId' }, 400)
+  return c.json(getEdgeArticles(actorId, targetId))
+})
 
 // Start serving immediately — polling runs in background so Vite proxy
 // is never connection-refused on cold start. Cache returns [] until first
 // poll completes (~5-8s), then fills on subsequent 30s cycles.
 serve({ fetch: app.fetch, port: 3001 }, () => {
-  console.log('GothamHUD server → http://localhost:3001')
+  console.log('Endurion server → http://localhost:3001')
 })
 
 startPoller().catch((e) => console.error('[poller] startup failed:', e))
 startAis()
 startDronePoller()
-startCyberPoller()
+startNewsPoller().catch((e) => console.error('[news] startup failed:', e))
+startCyberNewsPoller().catch((e) => console.error('[cyberNews] startup failed:', e))
