@@ -101,17 +101,35 @@ const CYBER_FEEDS: CyberFeedSource[] = [
   { name: 'Sophos News', url: 'https://news.sophos.com/en-us/feed/', type: 'vendor' },
   { name: 'Microsoft Security', url: 'https://www.microsoft.com/en-us/security/blog/feed/', type: 'vendor' },
   { name: 'Google TAG', url: 'https://blog.google/threat-analysis-group/rss/', type: 'vendor' },
+  { name: 'ESET WeLiveSecurity', url: 'https://www.welivesecurity.com/en/rss/feed/', type: 'vendor' },
+  { name: 'Rapid7', url: 'https://blog.rapid7.com/rss/', type: 'vendor' },
+  { name: 'Check Point Research', url: 'https://research.checkpoint.com/feed/', type: 'vendor' },
+  { name: 'Fortinet Threat Research', url: 'https://www.fortinet.com/blog/threat-research.xml', type: 'vendor' },
+  { name: 'Proofpoint', url: 'https://www.proofpoint.com/us/blog.xml', type: 'vendor' },
+  { name: 'Volexity', url: 'https://www.volexity.com/blog/feed/', type: 'vendor' },
+  { name: 'Elastic Security Labs', url: 'https://www.elastic.co/security-labs/rss/feed.xml', type: 'vendor' },
+  { name: 'Kaspersky Securelist', url: 'https://securelist.com/feed/', type: 'vendor' },
+  { name: 'Trend Micro Research', url: 'https://www.trendmicro.com/en_us/research.rss.html', type: 'vendor' },
+  { name: 'Qualys Blog', url: 'https://blog.qualys.com/feed', type: 'vendor' },
+  { name: 'Dragos', url: 'https://www.dragos.com/feed/', type: 'vendor' },
 
   // Government
   { name: 'CISA Alerts', url: 'https://www.cisa.gov/news.xml', type: 'government' },
+  { name: 'CISA Advisories', url: 'https://www.cisa.gov/cybersecurity-advisories/all.xml', type: 'government' },
+  { name: 'CISA Current Activity', url: 'https://www.cisa.gov/uscert/ncas/current-activity.xml', type: 'government' },
   { name: 'US-CERT', url: 'https://www.cisa.gov/uscert/ncas/alerts.xml', type: 'government' },
   { name: 'NCSC UK', url: 'https://www.ncsc.gov.uk/api/1/services/v1/report-rss-feed.xml', type: 'government' },
+  { name: 'CERT-EU', url: 'https://cert.europa.eu/publications/security-advisories/rss', type: 'government' },
+  { name: 'ACSC Australia', url: 'https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/rss.xml', type: 'government' },
 
   // Research
   { name: 'Schneier on Security', url: 'https://www.schneier.com/feed/', type: 'research' },
   { name: 'SANS ISC', url: 'https://isc.sans.edu/rssfeed.xml', type: 'research' },
   { name: 'Packet Storm', url: 'https://rss.packetstormsecurity.com/', type: 'research' },
   { name: 'Exploit Database', url: 'https://www.exploit-db.com/rss.xml', type: 'research' },
+  { name: 'Huntress', url: 'https://www.huntress.com/blog/rss.xml', type: 'research' },
+  { name: 'Binary Defense', url: 'https://www.binarydefense.com/feed/', type: 'research' },
+  { name: 'GreyNoise', url: 'https://www.greynoise.io/blog/rss.xml', type: 'research' },
 ]
 
 // ── Cache state ──────────────────────────────────────────────────────
