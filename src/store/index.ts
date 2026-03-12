@@ -21,6 +21,8 @@ interface HUDStore {
   // Cyber view state
   cyberPanel: CyberPanel
   setCyberPanel: (panel: CyberPanel) => void
+  mitreTacticFilter: string | null  // selected MITRE tactic name, null = show all
+  setMitreTacticFilter: (tactic: string | null) => void
   watchlist: Set<string>  // watched actor names, CVE IDs, malware names
   addToWatchlist: (term: string) => void
   removeFromWatchlist: (term: string) => void
@@ -57,7 +59,7 @@ export const useHUDStore = create<HUDStore>((set) => ({
       else next.add(layer)
       return { globalLayers: next }
     }),
-  cityLayers: new Set<CityLayer>(['uas', 'zones']),
+  cityLayers: new Set<CityLayer>(['uas', 'zones', 'traffic', 'weather', 'aircraft']),
   toggleCityLayer: (layer) =>
     set((state) => {
       const next = new Set(state.cityLayers)
@@ -66,7 +68,13 @@ export const useHUDStore = create<HUDStore>((set) => ({
       return { cityLayers: next }
     }),
   cyberPanel: 'graph',
-  setCyberPanel: (panel) => set({ cyberPanel: panel }),
+  setCyberPanel: (panel) => set((state) => ({
+    cyberPanel: panel,
+    // Clear tactic filter when leaving the MITRE panel
+    mitreTacticFilter: panel === 'mitre' ? state.mitreTacticFilter : null,
+  })),
+  mitreTacticFilter: null,
+  setMitreTacticFilter: (tactic) => set({ mitreTacticFilter: tactic }),
   watchlist: new Set<string>(),
   addToWatchlist: (term) =>
     set((state) => {
