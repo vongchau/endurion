@@ -24,6 +24,7 @@ function DataRow({ label, value, color }: { label: string; value: string | numbe
 
 export function ActorProfileDetail({ profile }: { profile: ActorProfile }) {
   const addToWatchlist = useHUDStore((s) => s.addToWatchlist)
+  const removeFromWatchlist = useHUDStore((s) => s.removeFromWatchlist)
   const watchlist = useHUDStore((s) => s.watchlist)
   const isWatched = watchlist.has(profile.name.toLowerCase())
 
@@ -45,7 +46,7 @@ export function ActorProfileDetail({ profile }: { profile: ActorProfile }) {
 
       {/* Watch button */}
       <button
-        onClick={() => addToWatchlist(profile.name)}
+        onClick={() => isWatched ? removeFromWatchlist(profile.name) : addToWatchlist(profile.name)}
         className="w-full mb-2 px-2 py-1 rounded border text-center font-mono text-[9px] tracking-wider transition-colors"
         style={{
           borderColor: isWatched ? '#00ff8840' : '#4a608040',

@@ -322,11 +322,18 @@ export function getGeoHeatmap(): GeoHeatmapPoint[] {
 
 export function getEdgeArticles(actorId: string, targetId: string): CyberNewsArticle[] {
   const articles = getCachedArticles()
-  const actorName = actorId.replace(/^actor-/, '').replace(/-/g, ' ')
-  const targetName = targetId.replace(/^target-/, '').replace(/-/g, ' ')
+  const graph = getCyberNewsGraph()
+
+  // Look up original labels from the graph node map (avoids slug round-trip issues)
+  const actorNode = graph.nodes.find(n => n.id === actorId)
+  const targetNode = graph.nodes.find(n => n.id === targetId)
+  if (!actorNode || !targetNode) return []
+
+  const actorLabel = actorNode.label.toLowerCase()
+  const targetLabel = targetNode.label.toLowerCase()
 
   return articles.filter(a =>
-    a.sourceActor?.toLowerCase() === actorName &&
-    a.target?.toLowerCase() === targetName
+    a.sourceActor?.toLowerCase() === actorLabel &&
+    a.target?.toLowerCase() === targetLabel
   ).sort((a, b) => b.timestamp - a.timestamp)
 }
