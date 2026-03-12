@@ -54,7 +54,7 @@ async function fetchCve(cveId: string): Promise<CveDetail | null> {
     const refs = (vuln.references ?? []).map((r: { url: string }) => r.url)
     const exploitAvailable = refs.some((r: string) =>
       r.includes('exploit-db') || r.includes('packetstorm') ||
-      r.includes('github.com') && r.includes('exploit')
+      (r.includes('github.com') && r.includes('exploit'))
     )
 
     return {
@@ -88,7 +88,16 @@ export async function getCveDetails(cveIds: string[]): Promise<Record<string, Cv
     }
   }
 
-  for (const id of toFetch.slice(0, 5)) {
+  // Return cached results immediately; fetch uncached in background
+  if (toFetch.length > 0) {
+    fetchMissing(toFetch.slice(0, 5)).catch(e => console.error('[CVE] background fetch error:', e))
+  }
+
+  return results
+}
+
+async function fetchMissing(ids: string[]): Promise<void> {
+  for (const id of ids) {
     if (cveCache.size > MAX_CVE_CACHE) {
       const iter = cveCache.keys()
       for (let i = 0; i < 200; i++) {
@@ -100,11 +109,8 @@ export async function getCveDetails(cveIds: string[]): Promise<Record<string, Cv
 
     const detail = await fetchCve(id)
     cveCache.set(id, detail)
-    if (detail) results[id] = detail
     await sleep(6500)
   }
-
-  return results
 }
 
 export function getCachedCve(cveId: string): CveDetail | null {

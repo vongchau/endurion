@@ -207,7 +207,7 @@ export function getActorProfile(actorName: string): ActorProfile | null {
   const malware = new Set<string>()
   const cves = new Set<string>()
   const tactics = new Set<string>()
-  let worstSeverity = 0
+  let cumulativeScore = 0
 
   for (const a of articles) {
     attackTypes.add(a.attackType)
@@ -216,7 +216,7 @@ export function getActorProfile(actorName: string): ActorProfile | null {
     a.cves.forEach(c => cves.add(c))
     a.mitreTactics.forEach(t => tactics.add(t))
     const sev = a.severity === 'critical' ? 25 : a.severity === 'high' ? 15 : a.severity === 'medium' ? 8 : 3
-    worstSeverity += sev
+    cumulativeScore += sev
   }
 
   const first = articles[0]
@@ -225,7 +225,7 @@ export function getActorProfile(actorName: string): ActorProfile | null {
     country: first.sourceCountry ?? null,
     lat: first.sourceLat ?? null,
     lng: first.sourceLng ?? null,
-    threatScore: Math.min(100, worstSeverity),
+    threatScore: Math.min(100, cumulativeScore),
     articleCount: articles.length,
     attackTypes: [...attackTypes],
     targets: [...targets.entries()].map(([name, country]) => ({ name, country })),
@@ -254,6 +254,7 @@ export interface TemporalBucket {
 }
 
 export function getTemporalData(hours = 168): TemporalBucket[] {
+  hours = Math.min(hours, 720) // cap at 30 days
   const articles = getCachedArticles()
   const now = Date.now()
   const cutoff = now - hours * 60 * 60 * 1000
