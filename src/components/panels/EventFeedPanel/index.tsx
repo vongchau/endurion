@@ -522,6 +522,7 @@ export function EventFeedPanel() {
             sublabel: `${s.altitude} km`,
             severity: (s.type === 'iss' ? 'high' : 'nominal') as Severity,
             time: `${s.velocity} km/s`,
+            source: s.type === 'iss' ? 'ISS' : 'SAT',
             onClick: () => {
               setSelectedEntity({ type: 'satellite', data: s })
               setPanelVisible('entity', true)

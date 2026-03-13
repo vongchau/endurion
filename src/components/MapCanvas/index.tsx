@@ -1,7 +1,7 @@
 // src/components/MapCanvas/index.tsx
 import { useCallback } from 'react'
 import Map from 'react-map-gl/mapbox'
-import type { MapLayerMouseEvent, ViewStateChangeEvent } from 'react-map-gl/mapbox'
+import type { MapMouseEvent, ViewStateChangeEvent } from 'react-map-gl/mapbox'
 import type { AISVessel, DroneFlight, NewsArticle } from '../../types'
 import { useHUDStore } from '../../store'
 import { GlobalMarkers } from '../../views/global/GlobalMarkers'
@@ -54,7 +54,7 @@ export function MapCanvas() {
     }
   }, [setMapZoom, setMapBounds])
 
-  const handleMapClick = useCallback((event: MapLayerMouseEvent) => {
+  const handleMapClick = useCallback((event: MapMouseEvent) => {
     const feature = event.features?.[0]
     if (!feature) return
 
