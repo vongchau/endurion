@@ -1,5 +1,6 @@
 // server/index.ts
 import { serve } from '@hono/node-server'
+import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { getIncidents, getFlights } from './cache'
@@ -23,10 +24,13 @@ import { getTactics } from './mitreData'
 import { getThreatStats, getMitreHeatmap, getCampaigns, getActorProfile, getTemporalData, getGeoHeatmap, getEdgeArticles } from './cyberAggregations'
 
 const app = new Hono()
+const isProd = process.env.NODE_ENV === 'production'
 
-app.use('*', cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
-}))
+if (!isProd) {
+  app.use('*', cors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+  }))
+}
 
 app.get('/api/incidents', (c) => c.json(deduplicateIncidents(getIncidents())))
 app.get('/api/flights',   (c) => c.json(getFlights()))
@@ -227,11 +231,19 @@ app.get('/api/cyber/edge-articles', (c) => {
   return c.json(getEdgeArticles(actorId, targetId))
 })
 
+// In production, serve the Vite-built frontend from dist/
+if (isProd) {
+  app.use('*', serveStatic({ root: './dist' }))
+  // SPA fallback — serve index.html for any non-API route
+  app.get('*', serveStatic({ path: './dist/index.html' }))
+}
+
 // Start serving immediately — polling runs in background so Vite proxy
 // is never connection-refused on cold start. Cache returns [] until first
 // poll completes (~5-8s), then fills on subsequent 30s cycles.
-serve({ fetch: app.fetch, port: 3001 }, () => {
-  console.log('Endurion server → http://localhost:3001')
+const port = parseInt(process.env.PORT ?? '3001', 10)
+serve({ fetch: app.fetch, port }, () => {
+  console.log(`Endurion server → http://localhost:${port}`)
 })
 
 startPoller().catch((e) => console.error('[poller] startup failed:', e))
