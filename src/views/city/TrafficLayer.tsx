@@ -28,12 +28,13 @@ export function TrafficLayer({ incidents }: Props) {
         paint={{
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 3, 13, 7, 16, 12],
           'circle-color': [
-            'match', ['get', 'severity'],
-            1, '#00ff88',
-            2, '#ffaa00',
-            3, '#ff8c00',
-            4, '#ff2d2d',
-            '#4a6080',
+            'match', ['get', 'category'],
+            'accident',    '#ff2d2d',   // red
+            'congestion',  '#ffaa00',   // amber
+            'roadClosed',  '#ff4080',   // magenta-pink
+            'roadWorks',   '#7b2fff',   // purple
+            'weather',     '#00d4ff',   // cyan
+            '#4a6080',                  // other — dim
           ],
           'circle-opacity': 0.85,
           'circle-stroke-width': 1,
@@ -54,7 +55,15 @@ export function TrafficLayer({ incidents }: Props) {
           'text-allow-overlap': false,
         }}
         paint={{
-          'text-color': '#ff2d2d',
+          'text-color': [
+            'match', ['get', 'category'],
+            'accident',    '#ff2d2d',
+            'congestion',  '#ffaa00',
+            'roadClosed',  '#ff4080',
+            'roadWorks',   '#7b2fff',
+            'weather',     '#00d4ff',
+            '#4a6080',
+          ],
           'text-halo-color': '#050810',
           'text-halo-width': 1,
           'text-opacity': 0.7,

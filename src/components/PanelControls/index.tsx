@@ -6,8 +6,8 @@ import type { PanelState } from '../../types'
 const CONTROLS: { panel: keyof PanelState; label: string; icon: string; position: string }[] = [
   { panel: 'eventFeed', label: 'FEED', icon: '▤', position: 'left-4 top-1/2 -translate-y-1/2' },
   { panel: 'entity', label: 'ENTITY', icon: '▦', position: 'right-4 top-1/2 -translate-y-1/2' },
-  { panel: 'statusBar', label: 'STATUS', icon: '▬', position: 'top-4 left-1/2 -translate-x-1/2' },
-  { panel: 'timeline', label: 'TIMELINE', icon: '▭', position: 'bottom-16 right-4' },
+  { panel: 'statusBar', label: 'STATUS', icon: '▬', position: 'top-14 left-1/2 -translate-x-1/2' },
+  { panel: 'timeline', label: 'TIMELINE', icon: '▭', position: 'bottom-[5.5rem] right-6' },
 ]
 
 export function PanelControls() {

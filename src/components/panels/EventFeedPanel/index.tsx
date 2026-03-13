@@ -282,7 +282,7 @@ export function EventFeedPanel() {
   const campaigns = useCampaigns(activeView === 'cyber')
 
   // Only fetch satellite data when in space view
-  const { satellites, loading: satsLoading } = useSatellites()
+  const { satellites, loading: satsLoading } = useSatellites(activeView === 'space')
   const { alerts: swAlerts, scales, kpIndex } = useSpaceWeather(activeView === 'space')
   const chokepoints = useChokepoints(activeView === 'global' && globalLayers.has('maritime'))
   const showNews = activeView === 'global' && globalLayers.has('news')
@@ -502,8 +502,8 @@ export function EventFeedPanel() {
       })
     : activeView === 'cyber'
     ? filteredCyber
-    : // space
-      [
+    : activeView === 'space'
+    ? [
         ...swAlerts.slice(0, 5).map(a => ({
           id: a.id,
           label: a.title,
@@ -525,9 +525,11 @@ export function EventFeedPanel() {
             onClick: () => {
               setSelectedEntity({ type: 'satellite', data: s })
               setPanelVisible('entity', true)
+              mapRef.current?.flyTo({ center: [s.lng, s.lat], zoom: 4, duration: 1500 })
             },
           })),
       ]
+    : []
 
   return (
     <AnimatePresence>

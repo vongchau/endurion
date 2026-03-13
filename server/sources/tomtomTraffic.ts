@@ -18,12 +18,19 @@ const CATEGORY_MAP: Record<number, TrafficIncident['category']> = {
   14: 'accident',   // Broken Down Vehicle
 }
 
+const CATEGORY_LABELS: Record<number, string> = {
+  0: 'Unknown', 1: 'Accident', 2: 'Fog', 3: 'Dangerous Conditions',
+  4: 'Rain', 5: 'Ice', 6: 'Traffic Jam', 7: 'Lane Closed',
+  8: 'Road Closed', 9: 'Road Works', 10: 'Wind', 11: 'Flooding',
+  12: 'Detour', 14: 'Broken Down Vehicle',
+}
+
 export async function fetchTrafficIncidents(
   apiKey: string,
   minLng: number, minLat: number, maxLng: number, maxLat: number,
 ): Promise<TrafficIncident[]> {
   const bbox = `${minLng},${minLat},${maxLng},${maxLat}`
-  const url = `https://api.tomtom.com/traffic/services/5/incidentDetails?bbox=${bbox}&key=${apiKey}&fields={incidents{type,geometry{type,coordinates},properties{id,iconCategory,magnitudeOfDelay,delay,events,startTime,endTime}}}&language=en-US&categoryFilter=0,1,2,3,4,5,6,7,8,9,10,11,12,14`
+  const url = `https://api.tomtom.com/traffic/services/5/incidentDetails?bbox=${bbox}&key=${apiKey}&language=en-US`
 
   const res = await fetch(url)
   if (!res.ok) {
@@ -39,6 +46,7 @@ export async function fetchTrafficIncidents(
     const geom = inc.geometry
     if (!geom?.coordinates) continue
 
+    // Extract first coordinate: Point → use directly, LineString → use first point
     const coords = geom.type === 'Point'
       ? geom.coordinates
       : Array.isArray(geom.coordinates[0])
@@ -49,10 +57,10 @@ export async function fetchTrafficIncidents(
     const description = (props.events ?? [])
       .map((e: { description?: string }) => e.description)
       .filter(Boolean)
-      .join('; ') || `Traffic incident (category ${iconCat})`
+      .join('; ') || CATEGORY_LABELS[iconCat] || `Traffic incident`
 
     incidents.push({
-      id: props.id ?? `tt-${Math.random().toString(36).slice(2)}`,
+      id: props.id ?? `tt-${iconCat}-${coords[0].toFixed(4)}-${coords[1].toFixed(4)}`,
       lat: coords[1],
       lng: coords[0],
       category: CATEGORY_MAP[iconCat] ?? 'other',

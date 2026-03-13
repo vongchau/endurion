@@ -4,7 +4,7 @@ import { Marker, useMap } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
 import { useCyberNews } from '../../hooks/useCyberNews'
 import { CyberHeatmap } from './CyberHeatmap'
-import type { CyberNewsNode, CyberNewsGraph, CyberNewsArticle } from '../../types'
+import type { CyberNewsNode, CyberNewsGraph, CyberNewsArticle, CyberNewsEdge, CyberClusterData } from '../../types'
 
 const NODE_COLORS: Record<CyberNewsNode['type'], string> = {
   actor: '#ff2d2d',
@@ -89,19 +89,42 @@ export function CyberLayer() {
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
   const cyberPanel = useHUDStore((s) => s.cyberPanel)
-  const { graph, articles, loading } = useCyberNews()
+  const mitreTacticFilter = useHUDStore((s) => s.mitreTacticFilter)
+  const { graph: rawGraph, articles, loading } = useCyberNews()
 
-  // Build a lookup: node id → first matching article for entity panel
-  const nodeArticleMap = useMemo(() => {
-    const map = new Map<string, CyberNewsArticle>()
+  // Filter graph by MITRE tactic when a tactic is selected
+  const graph = useMemo(() => {
+    if (!rawGraph || !mitreTacticFilter) return rawGraph
+
+    // Find node IDs that appear in articles matching the tactic
+    const matchingNodeIds = new Set<string>()
+    for (const a of articles) {
+      if (!a.mitreTactics.includes(mitreTacticFilter)) continue
+      if (a.sourceActor) matchingNodeIds.add(`actor-${a.sourceActor.toLowerCase().replace(/\s+/g, '-')}`)
+      if (a.target) matchingNodeIds.add(`target-${a.target.toLowerCase().replace(/\s+/g, '-')}`)
+    }
+
+    const filteredNodes = rawGraph.nodes.filter(n => matchingNodeIds.has(n.id))
+    const filteredEdges = rawGraph.edges.filter(e => matchingNodeIds.has(e.sourceId) && matchingNodeIds.has(e.targetId))
+
+    return { nodes: filteredNodes, edges: filteredEdges }
+  }, [rawGraph, mitreTacticFilter, articles])
+
+  // Build a lookup: node id → all matching articles for entity panel
+  const nodeArticlesMap = useMemo(() => {
+    const map = new Map<string, CyberNewsArticle[]>()
     for (const a of articles) {
       if (a.sourceActor) {
         const actorId = `actor-${a.sourceActor.toLowerCase().replace(/\s+/g, '-')}`
-        if (!map.has(actorId)) map.set(actorId, a)
+        const list = map.get(actorId) ?? []
+        list.push(a)
+        map.set(actorId, list)
       }
       if (a.target) {
         const targetId = `target-${a.target.toLowerCase().replace(/\s+/g, '-')}`
-        if (!map.has(targetId)) map.set(targetId, a)
+        const list = map.get(targetId) ?? []
+        list.push(a)
+        map.set(targetId, list)
       }
     }
     return map
@@ -116,7 +139,7 @@ export function CyberLayer() {
   useAnimatedEdges(canvasRef, getPixel, graph)
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!graph || cyberPanel !== 'graph') return
+    if (!graph || (cyberPanel !== 'graph' && !mitreTacticFilter)) return
     const rect = e.currentTarget.getBoundingClientRect()
     const mx = e.clientX - rect.left
     const my = e.clientY - rect.top
@@ -157,7 +180,7 @@ export function CyberLayer() {
         return
       }
     }
-  }, [graph, cyberPanel, getPixel, setSelectedEntity, setPanelVisible])
+  }, [graph, cyberPanel, mitreTacticFilter, getPixel, setSelectedEntity, setPanelVisible])
 
   // Sync canvas size to map
   useEffect(() => {
@@ -197,7 +220,7 @@ export function CyberLayer() {
     <>
       {cyberPanel === 'heatmap' && <CyberHeatmap />}
 
-      {cyberPanel === 'graph' && (
+      {(cyberPanel === 'graph' || mitreTacticFilter) && (
         <>
           {/* Canvas for animated edges */}
           <canvas
@@ -214,23 +237,15 @@ export function CyberLayer() {
               <Marker key={node.id} longitude={node.lng} latitude={node.lat} anchor="center">
                 <button
                   onClick={() => {
-                    if (node.type === 'actor') {
-                      // Fetch actor profile
-                      fetch(`/api/cyber/actor/${encodeURIComponent(node.label)}`)
-                        .then(res => res.ok ? res.json() : null)
-                        .then(profile => {
-                          if (profile) {
-                            setSelectedEntity({ type: 'actorProfile', data: profile })
-                            setPanelVisible('entity', true)
-                          }
-                        })
-                        .catch(() => {})
-                    } else {
-                      const article = nodeArticleMap.get(node.id)
-                      if (article) {
-                        setSelectedEntity({ type: 'cyberNews', data: article })
-                        setPanelVisible('entity', true)
+                    const nodeArticles = nodeArticlesMap.get(node.id)
+                    if (nodeArticles && nodeArticles.length > 0) {
+                      const cluster: CyberClusterData = {
+                        label: node.label,
+                        nodeType: node.type,
+                        articles: nodeArticles.sort((a, b) => b.timestamp - a.timestamp),
                       }
+                      setSelectedEntity({ type: 'cyberCluster', data: cluster })
+                      setPanelVisible('entity', true)
                     }
                   }}
                   className={`relative flex items-center justify-center ${sizes.outer} rounded-full border-2 backdrop-blur-sm hover:scale-125 transition-transform`}

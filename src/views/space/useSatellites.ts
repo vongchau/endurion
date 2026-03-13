@@ -122,15 +122,16 @@ interface UseSatellitesReturn {
   usingMockData: boolean
 }
 
-export function useSatellites(): UseSatellitesReturn {
+export function useSatellites(enabled = true): UseSatellitesReturn {
   const [entries, setEntries] = useState<SatrecEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [usingMockData, setUsingMockData] = useState(false)
   const [positions, setPositions] = useState<Satellite[]>([])
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
 
-  // Fetch and parse TLEs once on mount
+  // Fetch and parse TLEs only when enabled
   useEffect(() => {
+    if (!enabled) return
     let cancelled = false
 
     async function fetchTLEs() {
@@ -157,18 +158,18 @@ export function useSatellites(): UseSatellitesReturn {
 
     fetchTLEs()
     return () => { cancelled = true }
-  }, [])
+  }, [enabled])
 
-  // Recompute positions every 5 seconds once TLEs are loaded
+  // Recompute positions every 5 seconds once TLEs are loaded (only when enabled)
   useEffect(() => {
-    if (entries.length === 0) return
+    if (!enabled || entries.length === 0) return
 
     const update = () => setPositions(computePositions(entries))
     update() // immediate first compute
 
     intervalRef.current = setInterval(update, 5000)
     return () => clearInterval(intervalRef.current)
-  }, [entries])
+  }, [entries, enabled])
 
   const iss = positions.find(s => s.type === 'iss') ?? null
   const geojson = buildGeoJSON(positions)

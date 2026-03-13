@@ -12,7 +12,7 @@ export function CityLayerToggles() {
   const toggleCityLayer = useHUDStore((s) => s.toggleCityLayer)
 
   return (
-    <div className="fixed bottom-16 right-4 z-40 flex gap-2">
+    <div className="fixed bottom-16 right-6 z-40 flex gap-2">
       {LAYERS.map(({ key, label, color }) => {
         const active = cityLayers.has(key)
         return (

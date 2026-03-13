@@ -24,7 +24,29 @@
       "Bash(nslookup:*)",
       "WebSearch",
       "Bash(jq:*)",
-      "WebFetch(domain:developers.cloudflare.com)"
+      "WebFetch(domain:developers.cloudflare.com)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_wait_for",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_press_key",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_resize",
+      "Bash(npx vite:*)",
+      "Bash(find /Users/vongchau/gothamhud/src/views/cyber -type f -name \"*.ts*\" 2>/dev/null | sort)",
+      "Bash(find /Users/vongchau/gothamhud/server -type f -name \"*.ts*\" 2>/dev/null | sort)",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "Bash(find /Users/vongchau/gothamhud/src/views/city -name \"*.tsx\" -o -name \"*.ts\" | xargs ls -lah)",
+      "WebFetch(domain:developer.tomtom.com)",
+      "WebFetch(domain:www.weather.gov)",
+      "WebFetch(domain:dev.socrata.com)",
+      "WebFetch(domain:openskynetwork.github.io)",
+      "WebFetch(domain:ornl.opendatasoft.com)",
+      "WebFetch(domain:weather-gov.github.io)",
+      "WebFetch(domain:api.weather.gov)",
+      "mcp__plugin_playwright_playwright__browser_install",
+      "Bash(kill 33027)"
     ]
   }
 }
