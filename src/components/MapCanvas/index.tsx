@@ -1,5 +1,5 @@
 // src/components/MapCanvas/index.tsx
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Map from 'react-map-gl/mapbox'
 import type { MapMouseEvent, ViewStateChangeEvent } from 'react-map-gl/mapbox'
 import type { AISVessel, DroneFlight, NewsArticle } from '../../types'
@@ -10,7 +10,8 @@ import { CyberLayer } from '../../views/cyber/CyberLayer'
 import { SpaceLayer } from '../../views/space/SpaceLayer'
 import { mapRef } from '../../mapRef'
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
+// Build-time token (works in local dev with .env.local)
+const BUILD_TIME_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
 const VIEW_CONFIGS = {
   global: {
@@ -38,6 +39,15 @@ export function MapCanvas() {
   const setMapZoom   = useHUDStore((s) => s.setMapZoom)
   const setMapBounds = useHUDStore((s) => s.setMapBounds)
   const config = VIEW_CONFIGS[activeView]
+
+  // Use build-time token if available, otherwise fetch from server at runtime
+  const [mapboxToken, setMapboxToken] = useState(BUILD_TIME_TOKEN || '')
+  useEffect(() => {
+    if (mapboxToken) return
+    fetch('/api/config').then(r => r.json())
+      .then((cfg: { mapboxToken: string }) => { if (cfg.mapboxToken) setMapboxToken(cfg.mapboxToken) })
+      .catch(() => {})
+  }, [mapboxToken])
 
   const handleMoveEnd = useCallback((evt: ViewStateChangeEvent) => {
     const map = mapRef.current?.getMap()
@@ -220,12 +230,14 @@ export function MapCanvas() {
     }
   }, [activeView, setMapZoom, setMapBounds])
 
+  if (!mapboxToken) return <div className="absolute inset-0 bg-hud-bg" />
+
   return (
     <div className="absolute inset-0">
       <Map
         ref={mapRef}
         key={activeView}
-        mapboxAccessToken={MAPBOX_TOKEN}
+        mapboxAccessToken={mapboxToken}
         mapStyle={config.mapStyle}
         initialViewState={config.initialViewState}
         onLoad={handleMapLoad}

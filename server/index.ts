@@ -231,6 +231,11 @@ app.get('/api/cyber/edge-articles', (c) => {
   return c.json(getEdgeArticles(actorId, targetId))
 })
 
+// Expose Mapbox token at runtime so it doesn't need to be baked in at build time
+app.get('/api/config', (c) => c.json({
+  mapboxToken: process.env.VITE_MAPBOX_TOKEN ?? process.env.MAPBOX_ACCESS_TOKEN ?? '',
+}))
+
 // In production, serve the Vite-built frontend from dist/
 if (isProd) {
   app.use('*', serveStatic({ root: './dist' }))
