@@ -4,7 +4,7 @@ import { Marker, useMap } from 'react-map-gl/mapbox'
 import { useHUDStore } from '../../store'
 import { useCyberNews } from '../../hooks/useCyberNews'
 import { CyberHeatmap } from './CyberHeatmap'
-import type { CyberNewsNode, CyberNewsGraph, CyberNewsArticle, CyberNewsEdge, CyberClusterData } from '../../types'
+import type { CyberNewsNode, CyberNewsGraph, CyberNewsArticle, CyberClusterData } from '../../types'
 
 const NODE_COLORS: Record<CyberNewsNode['type'], string> = {
   actor: '#ff2d2d',

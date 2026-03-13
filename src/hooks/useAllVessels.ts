@@ -1,5 +1,5 @@
 // src/hooks/useAllVessels.ts
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { AISVessel, MapBounds } from '../types'
 
 const MIN_ZOOM = 4

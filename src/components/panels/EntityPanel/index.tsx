@@ -534,7 +534,6 @@ function CyberClusterDetail({ data, onSelectArticle, onViewProfile }: {
   for (const a of data.articles) byAttackType.set(a.attackType, (byAttackType.get(a.attackType) ?? 0) + 1)
   const attackTypes = [...byAttackType.entries()].sort((a, b) => b[1] - a[1])
 
-  const headerColor = data.nodeType === 'actor' ? '#ff2d2d' : '#00d4ff'
   const headerBg = data.nodeType === 'actor' ? 'bg-hud-red/10 text-hud-red border-hud-red/30' : 'bg-hud-cyan/10 text-hud-cyan border-hud-cyan/30'
 
   return (
