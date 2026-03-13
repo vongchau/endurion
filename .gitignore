@@ -3,3 +3,6 @@ node_modules/
 dist/
 .worktrees/
 .firecrawl/
+.playwright-mcp/
+snapshot*.md
+*.png

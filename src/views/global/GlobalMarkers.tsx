@@ -7,6 +7,8 @@ import { useVessels } from '../../hooks/useVessels'
 import { useAllVessels } from '../../hooks/useAllVessels'
 import { VesselDensityLayer } from './VesselDensityLayer'
 import { VesselLayer } from './VesselLayer'
+import { NewsLayer } from './NewsLayer'
+import { useNews } from '../../hooks/useNews'
 import type { GlobalIncident, MilitaryFlight, MilitaryCandidate, Severity } from '../../types'
 import { incidentToLayer } from '../../utils/incidentLayer'
 
@@ -84,6 +86,8 @@ export function GlobalMarkers() {
   const { vessels } = useAllVessels(mapZoom, mapBounds)
   const showMaritime = globalLayers.has('maritime')
   const showVessels  = showMaritime && mapZoom >= 4
+  const showNews     = globalLayers.has('news')
+  const { geoJSON: newsGeo } = useNews(showNews)
 
   const visibleIncidents = incidents.filter((i) => globalLayers.has(incidentToLayer(i)))
   const showFlights = globalLayers.has('military')
@@ -101,6 +105,7 @@ export function GlobalMarkers() {
       {showMaritime && military.map((c) => (
         <VesselMarker key={c.mmsi} candidate={c} />
       ))}
+      {showNews && <NewsLayer geoJSON={newsGeo} />}
     </>
   )
 }

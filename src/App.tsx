@@ -8,46 +8,11 @@ import { EventFeedPanel } from './components/panels/EventFeedPanel'
 import { EntityPanel } from './components/panels/EntityPanel'
 import { Timeline } from './components/panels/Timeline'
 import { PanelControls } from './components/PanelControls'
-import { CityLayerToggles } from './views/city/CityLayerToggles'
 import { CyberDashboard } from './views/cyber/CyberDashboard'
 import { CyberTimeline } from './views/cyber/CyberTimeline'
 import { MitreHeatmap } from './views/cyber/MitreHeatmap'
 import { useHUDStore } from './store'
-import type { CyberPanel } from './types'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
-
-function CyberViewToggles() {
-  const cyberPanel = useHUDStore((s) => s.cyberPanel)
-  const setCyberPanel = useHUDStore((s) => s.setCyberPanel)
-
-  const toggles: { key: CyberPanel; label: string }[] = [
-    { key: 'graph', label: 'GRAPH' },
-    { key: 'heatmap', label: 'GEO HEAT' },
-    { key: 'mitre', label: 'ATT&CK' },
-  ]
-
-  return (
-    <div className="fixed bottom-16 right-6 z-40 flex gap-2">
-      {toggles.map(({ key, label }) => {
-        const active = cyberPanel === key
-        return (
-          <button
-            key={key}
-            onClick={() => setCyberPanel(key)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-[10px] tracking-widest border transition-all"
-            style={{
-              borderColor: active ? '#ff2d2d' : '#4a6080',
-              color: active ? '#ff2d2d' : '#4a6080',
-              backgroundColor: active ? '#ff2d2d15' : 'transparent',
-            }}
-          >
-            {label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
 
 function BootScreen({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
@@ -111,10 +76,8 @@ export default function App() {
       <EntityPanel />
       <Timeline />
       <PanelControls />
-      {activeView === 'city' && <CityLayerToggles />}
       {activeView === 'cyber' && <CyberDashboard />}
       {activeView === 'cyber' && <CyberTimeline />}
-      {activeView === 'cyber' && <CyberViewToggles />}
       {activeView === 'cyber' && <MitreHeatmap />}
       <CommandSwitcher />
     </div>
