@@ -149,6 +149,7 @@ export function MapCanvas() {
         heading:       Number(p.heading ?? 0),
         state:         String(p.state ?? 'unknown'),
         timestamp:     Number(p.timestamp ?? 0),
+        trail:         [],
       }
       setSelectedEntity({ type: 'drone', data: drone })
       setPanelVisible('entity', true)
