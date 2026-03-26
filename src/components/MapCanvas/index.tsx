@@ -140,11 +140,15 @@ export function MapCanvas() {
     if (feature.layer?.id === 'drone-points') {
       const p = feature.properties as Record<string, unknown>
       const droneId = String(p.id ?? '')
+      // Use the feature's actual geometry, not the cursor position
+      const geom = feature.geometry as GeoJSON.Point
+      const droneLng = geom.coordinates[0]
+      const droneLat = geom.coordinates[1]
       const drone: DroneFlight = {
         id:            droneId,
         sensorId:      String(p.sensorId ?? ''),
-        lat:           event.lngLat.lat,
-        lng:           event.lngLat.lng,
+        lat:           droneLat,
+        lng:           droneLng,
         altitude:      Number(p.altitude ?? 0),
         speed:         Number(p.speed ?? 0),
         verticalSpeed: Number(p.verticalSpeed ?? 0),
@@ -156,24 +160,24 @@ export function MapCanvas() {
       setSelectedEntity({ type: 'drone', data: drone })
       setPanelVisible('entity', true)
 
-      // Fit map to the drone's flight trail
+      // Fly to drone position, zoom level sized to show the full trail
       const trail = droneTrailsRef.get(droneId)
       const map = mapRef.current?.getMap()
-      if (map && trail && trail.length >= 2) {
-        let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity
-        for (const pt of trail) {
-          if (pt.lng < minLng) minLng = pt.lng
-          if (pt.lat < minLat) minLat = pt.lat
-          if (pt.lng > maxLng) maxLng = pt.lng
-          if (pt.lat > maxLat) maxLat = pt.lat
+      if (map) {
+        let zoom = 15
+        if (trail && trail.length >= 2) {
+          let maxSpread = 0
+          for (const pt of trail) {
+            const dLng = Math.abs(pt.lng - droneLng)
+            const dLat = Math.abs(pt.lat - droneLat)
+            if (dLng > maxSpread) maxSpread = dLng
+            if (dLat > maxSpread) maxSpread = dLat
+          }
+          if (maxSpread > 0.0005) {
+            zoom = Math.min(16, Math.max(10, Math.round(14 - Math.log2(maxSpread / 0.01))))
+          }
         }
-        map.fitBounds([minLng, minLat, maxLng, maxLat], {
-          padding: 80,
-          maxZoom: 16,
-          duration: 1500,
-        })
-      } else if (map) {
-        map.flyTo({ center: [event.lngLat.lng, event.lngLat.lat], zoom: 15, duration: 1500 })
+        map.flyTo({ center: [droneLng, droneLat], zoom, duration: 1500 })
       }
       return
     }
