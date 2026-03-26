@@ -61,7 +61,7 @@ export const useHUDStore = create<HUDStore>((set) => ({
       else next.add(layer)
       return { globalLayers: next }
     }),
-  cityLayers: new Set<CityLayer>(['uas', 'zones', 'traffic', 'weather', 'aircraft']),
+  cityLayers: new Set<CityLayer>(['uas']),
   toggleCityLayer: (layer) =>
     set((state) => {
       const next = new Set(state.cityLayers)
