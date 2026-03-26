@@ -107,14 +107,17 @@ export function useActorProfile(actorName: string | null) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!actorName) { setProfile(null); return }
+    if (!actorName) return
     let active = true
+    const doFetch = async () => {
+      try {
+        const res = await fetch(`/api/cyber/actor/${encodeURIComponent(actorName)}`)
+        if (res.ok && active) setProfile(await res.json())
+      } catch { /* ignore */ }
+      finally { if (active) setLoading(false) }
+    }
     setLoading(true)
-    fetch(`/api/cyber/actor/${encodeURIComponent(actorName)}`)
-      .then(res => res.ok ? res.json() : null)
-      .then(data => { if (active) setProfile(data) })
-      .catch(() => {})
-      .finally(() => { if (active) setLoading(false) })
+    doFetch()
     return () => { active = false }
   }, [actorName])
 
@@ -126,14 +129,17 @@ export function useEdgeArticles(actorId: string | null, targetId: string | null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!actorId || !targetId) { setArticles([]); return }
+    if (!actorId || !targetId) return
     let active = true
+    const doFetch = async () => {
+      try {
+        const res = await fetch(`/api/cyber/edge-articles?actorId=${encodeURIComponent(actorId)}&targetId=${encodeURIComponent(targetId)}`)
+        if (res.ok && active) setArticles(await res.json())
+      } catch { /* ignore */ }
+      finally { if (active) setLoading(false) }
+    }
     setLoading(true)
-    fetch(`/api/cyber/edge-articles?actorId=${encodeURIComponent(actorId)}&targetId=${encodeURIComponent(targetId)}`)
-      .then(res => res.ok ? res.json() : [])
-      .then(data => { if (active) setArticles(data) })
-      .catch(() => {})
-      .finally(() => { if (active) setLoading(false) })
+    doFetch()
     return () => { active = false }
   }, [actorId, targetId])
 

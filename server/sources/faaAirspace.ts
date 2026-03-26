@@ -36,7 +36,7 @@ async function queryFAA(
     const data = await res.json()
     if (!data.features) return []
 
-    return data.features.map((f: any) => ({
+    return data.features.map((f: { properties: Record<string, string | number>; geometry: GeoJSON.Geometry }) => ({
       type: 'Feature',
       properties: {
         name: f.properties.NAME ?? f.properties.NAME_TXT ?? '',

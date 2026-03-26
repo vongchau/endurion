@@ -18,12 +18,27 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   VO: 'Volcano', WF: 'Wildfire', DR: 'Drought',
 }
 
+interface GDACSItem {
+  guid: string | { '#text': string }
+  link: string
+  title: string
+  pubDate: string
+  'geo:lat': string
+  'geo:long': string
+  'gdacs:alertlevel': string
+  'gdacs:latitude': string
+  'gdacs:longitude': string
+  'gdacs:country': string
+  'gdacs:eventtype': string
+  [key: string]: unknown
+}
+
 export async function fetchGDACS(): Promise<GlobalIncident[]> {
   const res = await fetch(GDACS_URL)
   if (!res.ok) throw new Error(`GDACS fetch failed: ${res.status}`)
   const xml = await res.text()
   const parsed = parser.parse(xml)
-  const items: any[] = parsed?.rss?.channel?.item ?? []
+  const items: GDACSItem[] = parsed?.rss?.channel?.item ?? []
 
   return items
     .filter((item) => item['gdacs:alertlevel']?.toUpperCase() !== 'GREEN')

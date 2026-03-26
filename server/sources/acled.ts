@@ -28,7 +28,7 @@ export async function fetchACLED(apiKey: string, email: string): Promise<GlobalI
   if (!res.ok) throw new Error(`ACLED fetch failed: ${res.status}`)
   const json = await res.json()
 
-  return (json.data ?? []).map((e: any): GlobalIncident => ({
+  return (json.data ?? []).map((e: Record<string, string>): GlobalIncident => ({
     id: `acled:${e.event_id_cnty}`,
     lat: parseFloat(e.latitude),
     lng: parseFloat(e.longitude),

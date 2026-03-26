@@ -1,5 +1,5 @@
 // src/hooks/useDrones.ts
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { DroneFlight, MapBounds } from '../types'
 
 function quantize(bounds: MapBounds): MapBounds {
@@ -15,12 +15,13 @@ function quantize(bounds: MapBounds): MapBounds {
 export function useDrones(enabled: boolean, bounds: MapBounds | null) {
   const [drones, setDrones] = useState<DroneFlight[]>([])
   const [loading, setLoading] = useState(false)
-  const fallbackRef = useRef(false)
+  const [useFallback, setUseFallback] = useState(false)
 
   const quantized = bounds ? quantize(bounds) : null
   const boundsKey = quantized
     ? `${quantized.minLng},${quantized.minLat},${quantized.maxLng},${quantized.maxLat}`
     : ''
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- boundsKey captures quantized values
   const stableBounds = useMemo(() => quantized, [boundsKey])
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export function useDrones(enabled: boolean, bounds: MapBounds | null) {
     })
 
     // Try SSE first
-    if (!fallbackRef.current) {
+    if (!useFallback) {
       setLoading(true)
       const es = new EventSource(`/api/drones/stream?${params}`)
 
@@ -51,7 +52,7 @@ export function useDrones(enabled: boolean, bounds: MapBounds | null) {
       es.onerror = () => {
         es.close()
         console.warn('[useDrones] SSE failed, falling back to polling')
-        fallbackRef.current = true
+        setUseFallback(true)
         setDrones([])
         setLoading(false)
       }
@@ -77,7 +78,7 @@ export function useDrones(enabled: boolean, bounds: MapBounds | null) {
     fetchData()
     const id = setInterval(fetchData, 10_000)
     return () => { cancelled = true; clearInterval(id) }
-  }, [enabled, stableBounds, fallbackRef.current])
+  }, [enabled, stableBounds, useFallback])
 
   return { drones: enabled ? drones : [], loading }
 }

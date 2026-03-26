@@ -27,6 +27,7 @@ export function useAllVessels(zoom: number, bounds: MapBounds | null) {
     : ''
 
   // Memoize by the string key so reference stays stable
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- boundsKey captures quantized values
   const stableBounds = useMemo(() => quantized, [boundsKey])
 
   useEffect(() => {

@@ -11,6 +11,7 @@ import { PanelControls } from './components/PanelControls'
 import { CyberDashboard } from './views/cyber/CyberDashboard'
 import { CyberTimeline } from './views/cyber/CyberTimeline'
 import { MitreHeatmap } from './views/cyber/MitreHeatmap'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { useHUDStore } from './store'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
@@ -65,21 +66,23 @@ export default function App() {
   useKeyboardShortcuts()
 
   return (
-    <div className="relative w-full h-full bg-hud-bg overflow-hidden">
-      <AnimatePresence>
-        {!booted && <BootScreen onComplete={() => setBooted(true)} />}
-      </AnimatePresence>
+    <ErrorBoundary>
+      <div className="relative w-full h-full bg-hud-bg overflow-hidden">
+        <AnimatePresence>
+          {!booted && <BootScreen onComplete={() => setBooted(true)} />}
+        </AnimatePresence>
 
-      <MapCanvas />
-      <StatusBar />
-      <EventFeedPanel />
-      <EntityPanel />
-      <Timeline />
-      <PanelControls />
-      {activeView === 'cyber' && <CyberDashboard />}
-      {activeView === 'cyber' && <CyberTimeline />}
-      {activeView === 'cyber' && <MitreHeatmap />}
-      <CommandSwitcher />
-    </div>
+        <MapCanvas />
+        <StatusBar />
+        <EventFeedPanel />
+        <EntityPanel />
+        <Timeline />
+        <PanelControls />
+        {activeView === 'cyber' && <CyberDashboard />}
+        {activeView === 'cyber' && <CyberTimeline />}
+        {activeView === 'cyber' && <MitreHeatmap />}
+        <CommandSwitcher />
+      </div>
+    </ErrorBoundary>
   )
 }

@@ -36,16 +36,18 @@ export async function fetchOpenSky(clientId?: string, clientSecret?: string): Pr
   if (!res.ok) throw new Error(`OpenSky fetch failed: ${res.status}`)
   const json = await res.json()
 
+  type StateVector = [string, string | null, string, number | null, number, number | null, number | null, number | null, boolean, number | null, number | null, ...unknown[]]
+
   return (json.states ?? [])
-    .filter((s: any[]) => s[5] !== null && s[6] !== null && isMilitary(s[0], s[1]))
-    .map((s: any[]): MilitaryFlight => ({
+    .filter((s: StateVector) => s[5] !== null && s[6] !== null && isMilitary(s[0], s[1] ?? ''))
+    .map((s: StateVector): MilitaryFlight => ({
       id: s[0],
       callsign: (s[1] ?? '').trim(),
-      lat: s[6],
-      lng: s[5],
-      altitude: s[7] ?? 0,
-      velocity: s[9] ?? 0,
-      heading: s[10] ?? 0,
+      lat: s[6] as number,
+      lng: s[5] as number,
+      altitude: (s[7] ?? 0) as number,
+      velocity: (s[9] ?? 0) as number,
+      heading: (s[10] ?? 0) as number,
       country: s[2] ?? 'Unknown',
       timestamp: new Date((s[3] ?? Date.now() / 1000) * 1000).toISOString(),
     }))

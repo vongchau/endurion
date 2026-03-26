@@ -20,6 +20,7 @@ import { useChokepoints } from '../../../hooks/useChokepoints'
 import { useNews } from '../../../hooks/useNews'
 import { useCyberNews } from '../../../hooks/useCyberNews'
 import { useCampaigns } from '../../../hooks/useCyberAggregations'
+import { useNow, formatTimeAgo } from '../../../hooks/useNow'
 import type { NewsPriority } from '../../../types'
 
 const SEVERITY_COLORS: Record<Severity, string> = {
@@ -252,6 +253,7 @@ export function EventFeedPanel() {
   const [showCampaigns, setShowCampaigns] = useState(false)
   const watchlist = useHUDStore((s) => s.watchlist)
   const mitreTacticFilter = useHUDStore((s) => s.mitreTacticFilter)
+  const now = useNow()
 
   const globalLayers = useHUDStore((s) => s.globalLayers)
   const { data: liveIncidents } = useGlobalData()
@@ -333,16 +335,12 @@ export function EventFeedPanel() {
               const priorityToSeverity: Record<NewsPriority, Severity> = {
                 critical: 'critical', high: 'high', medium: 'medium', low: 'low',
               }
-              const ago = Date.now() - a.timestamp
-              const timeStr = ago < 3600_000 ? `${Math.round(ago / 60_000)}m`
-                : ago < 86400_000 ? `${Math.round(ago / 3600_000)}h`
-                : `${Math.round(ago / 86400_000)}d`
               return {
                 id: a.id,
                 label: a.title,
                 sublabel: a.source,
                 severity: priorityToSeverity[a.priority],
-                time: timeStr,
+                time: formatTimeAgo(a.timestamp, now),
                 source: 'RSS',
                 feedType: (NEWS_CATEGORY_TO_FEED_TYPE[a.category] || 'world') as FeedType,
                 onClick: () => {
@@ -354,7 +352,7 @@ export function EventFeedPanel() {
           : []),
       ]
     : []
-  , [activeView, liveIncidents, globalLayers, liveFlights, disruptions, showNews, newsArticles, setSelectedEntity, setPanelVisible])
+  , [activeView, liveIncidents, globalLayers, liveFlights, disruptions, showNews, newsArticles, setSelectedEntity, setPanelVisible, now])
 
   // Compute tab counts for global view
   const feedCounts = {} as Record<FeedType, number>
@@ -369,17 +367,13 @@ export function EventFeedPanel() {
   // Compute cyber items with tab filtering
   const allCyberItems = useMemo(() => activeView === 'cyber'
     ? cyberArticles.map(a => {
-        const ago = Date.now() - a.timestamp
-        const timeStr = ago < 3600_000 ? `${Math.round(ago / 60_000)}m`
-          : ago < 86400_000 ? `${Math.round(ago / 3600_000)}h`
-          : `${Math.round(ago / 86400_000)}d`
         const actorTarget = [a.sourceActor, a.target].filter(Boolean).join(' → ') || a.source
         return {
           id: a.id,
           label: a.title,
           sublabel: actorTarget,
           severity: (a.severity === 'critical' ? 'critical' : a.severity === 'high' ? 'high' : a.severity === 'medium' ? 'medium' : 'low') as Severity,
-          time: timeStr,
+          time: formatTimeAgo(a.timestamp, now),
           source: a.attackType.toUpperCase().slice(0, 4),
           cyberType: a.attackType as CyberFeedType,
           mitreTactics: a.mitreTactics,
@@ -400,7 +394,7 @@ export function EventFeedPanel() {
         }
       })
     : []
-  , [activeView, cyberArticles, watchlist, setSelectedEntity, setPanelVisible])
+  , [activeView, cyberArticles, watchlist, setSelectedEntity, setPanelVisible, now])
 
   const cyberCounts = {} as Record<CyberFeedType, number>
   for (const tab of CYBER_FEED_TABS) cyberCounts[tab.key] = 0
@@ -580,10 +574,6 @@ export function EventFeedPanel() {
                 <div className="border-t border-hud-purple/20">
                   {campaigns.map(c => {
                     const sevColor = c.severity === 'critical' ? '#ff2d2d' : c.severity === 'high' ? '#ffaa00' : '#00d4ff'
-                    const ago = Date.now() - c.lastSeen
-                    const timeStr = ago < 3600_000 ? `${Math.round(ago / 60_000)}m`
-                      : ago < 86400_000 ? `${Math.round(ago / 3600_000)}h`
-                      : `${Math.round(ago / 86400_000)}d`
                     return (
                       <div key={c.id} className="px-3 py-2 border-b border-hud-dim/10">
                         <div className="flex items-center justify-between">
@@ -596,7 +586,7 @@ export function EventFeedPanel() {
                         <div className="flex items-center gap-2 mt-1">
                           <span className="font-mono text-[8px] text-hud-purple">{c.articleCount} articles</span>
                           {c.malware.length > 0 && <span className="font-mono text-[8px] text-hud-red">{c.malware[0]}</span>}
-                          <span className="font-mono text-[8px] text-hud-dim/50 ml-auto">{timeStr}</span>
+                          <span className="font-mono text-[8px] text-hud-dim/50 ml-auto">{formatTimeAgo(c.lastSeen, now)}</span>
                         </div>
                       </div>
                     )
