@@ -5,6 +5,7 @@ import { fetchDronetag } from './sources/dronetag'
 
 const POLL_INTERVAL = 5_000
 const STALE_MS      = 5 * 60 * 1000
+const MAX_TRAIL     = 60  // ~5 min at 5s polling
 
 let droneCache = new Map<string, DroneFlight>()
 let lastBbox   = ''
@@ -25,25 +26,57 @@ async function poll() {
   try {
     const raw = await fetchDronetag(apiKey, minLng, minLat, maxLng, maxLat)
     const now = Date.now()
-    droneCache = new Map()
+    const seen = new Set<string>()
+
     for (const d of raw) {
-      droneCache.set(d.operationId, {
-        id: d.operationId,
-        sensorId: d.sensorId,
-        lat: d.lat,
-        lng: d.lng,
-        altitude: d.altitude,
-        speed: d.speed,
-        verticalSpeed: d.verticalSpeed,
-        heading: d.heading,
-        state: d.state,
-        timestamp: d.timestamp,
-      })
+      seen.add(d.operationId)
+      const existing = droneCache.get(d.operationId)
+      const trailPoint = { lng: d.lng, lat: d.lat, timestamp: d.timestamp }
+
+      if (existing) {
+        // Append to trail only if position actually changed
+        const lastTrail = existing.trail[existing.trail.length - 1]
+        const moved = !lastTrail || lastTrail.lng !== d.lng || lastTrail.lat !== d.lat
+        const trail = moved
+          ? [...existing.trail, trailPoint].slice(-MAX_TRAIL)
+          : existing.trail
+
+        droneCache.set(d.operationId, {
+          id: d.operationId,
+          sensorId: d.sensorId,
+          lat: d.lat,
+          lng: d.lng,
+          altitude: d.altitude,
+          speed: d.speed,
+          verticalSpeed: d.verticalSpeed,
+          heading: d.heading,
+          state: d.state,
+          timestamp: d.timestamp,
+          trail,
+        })
+      } else {
+        droneCache.set(d.operationId, {
+          id: d.operationId,
+          sensorId: d.sensorId,
+          lat: d.lat,
+          lng: d.lng,
+          altitude: d.altitude,
+          speed: d.speed,
+          verticalSpeed: d.verticalSpeed,
+          heading: d.heading,
+          state: d.state,
+          timestamp: d.timestamp,
+          trail: [trailPoint],
+        })
+      }
     }
+
+    // Purge stale drones
     const cutoff = now - STALE_MS
     for (const [id, d] of droneCache) {
       if (d.timestamp < cutoff) droneCache.delete(id)
     }
+
     droneEvents.emit('update', Array.from(droneCache.values()))
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)

@@ -98,6 +98,12 @@ export interface AISDisruption {
   region: string
 }
 
+export interface DroneTrailPoint {
+  lng: number
+  lat: number
+  timestamp: number
+}
+
 export interface DroneFlight {
   id: string              // operation_id
   sensorId: string
@@ -109,6 +115,7 @@ export interface DroneFlight {
   heading: number         // degrees 0-360
   state: string           // 'grounded' | 'airborne' | etc.
   timestamp: number
+  trail: DroneTrailPoint[]
 }
 
 export interface TrafficIncident {
