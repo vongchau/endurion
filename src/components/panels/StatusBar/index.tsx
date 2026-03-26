@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
 import { useGlobalData } from '../../../hooks/useGlobalData'
-import type { GlobalLayer, CityLayer, CyberPanel } from '../../../types'
+import type { GlobalLayer, CityLayer, CityBasemap, CyberPanel } from '../../../types'
 
 const VIEW_LABELS = {
   global: { title: 'GLOBAL THREAT OVERVIEW', subtitle: 'ALL-SOURCE INTELLIGENCE' },
@@ -206,6 +206,90 @@ function CityLayerDropdown() {
   )
 }
 
+const CITY_BASEMAPS: { key: CityBasemap; label: string; icon: string }[] = [
+  { key: 'streets-dark',  label: 'DARK',      icon: '◐' },
+  { key: 'streets-light', label: 'LIGHT',     icon: '○' },
+  { key: 'satellite',     label: 'SATELLITE',  icon: '◉' },
+]
+
+function CityBasemapToggle() {
+  const [open, setOpen] = useState(false)
+  const cityBasemap = useHUDStore((s) => s.cityBasemap)
+  const setCityBasemap = useHUDStore((s) => s.setCityBasemap)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const active = CITY_BASEMAPS.find(b => b.key === cityBasemap)!
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 px-2 py-1 rounded border border-hud-green/30 font-mono text-[10px] tracking-wider text-hud-green hover:bg-hud-green/10 transition-colors"
+      >
+        <span className="text-xs">{active.icon}</span>
+        {active.label}
+        <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <path d="M0 0L4 5L8 0Z" />
+        </svg>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-hud-green/20 bg-hud-panel/95 backdrop-blur-md shadow-lg overflow-hidden z-50"
+          >
+            <div className="px-3 py-1.5 border-b border-hud-dim/10">
+              <span className="font-mono text-[8px] tracking-[0.2em] text-hud-dim">BASEMAP</span>
+            </div>
+            {CITY_BASEMAPS.map(({ key, label, icon }) => {
+              const isActive = cityBasemap === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => { setCityBasemap(key); setOpen(false) }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-white/[0.03] transition-colors"
+                >
+                  <span
+                    className="w-3 h-3 rounded-full border flex items-center justify-center transition-colors"
+                    style={{
+                      borderColor: isActive ? '#00ff88' : '#4a6080',
+                      backgroundColor: isActive ? '#00ff88' : 'transparent',
+                    }}
+                  >
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-hud-panel" />
+                    )}
+                  </span>
+                  <span className="text-xs">{icon}</span>
+                  <span
+                    className="font-mono text-[10px] tracking-wider"
+                    style={{ color: isActive ? '#00ff88' : '#4a6080' }}
+                  >
+                    {label}
+                  </span>
+                </button>
+              )
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 const CYBER_PANELS: { key: CyberPanel; label: string; color: string }[] = [
   { key: 'graph',   label: 'GRAPH',    color: '#ff2d2d' },
   { key: 'heatmap', label: 'GEO HEAT', color: '#ffaa00' },
@@ -324,6 +408,7 @@ export function StatusBar() {
           {/* Right: layer dropdown + context-aware counts */}
           <div className="flex items-center gap-4 shrink-0">
             {activeView === 'global' && <LayerDropdown />}
+            {activeView === 'city' && <CityBasemapToggle />}
             {activeView === 'city' && <CityLayerDropdown />}
             {activeView === 'cyber' && <CyberPanelDropdown />}
             {activeView !== 'space' && (
