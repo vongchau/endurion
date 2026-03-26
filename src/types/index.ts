@@ -3,6 +3,8 @@ import type * as GeoJSON from 'geojson'
 
 export type ViewMode = 'global' | 'city' | 'cyber' | 'space'
 
+export type CityBasemap = 'streets-dark' | 'streets-light' | 'satellite'
+
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'nominal'
 
 export interface GlobalIncident {

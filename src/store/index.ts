@@ -1,6 +1,6 @@
 // src/store/index.ts
 import { create } from 'zustand'
-import type { ViewMode, PanelState, Entity, GlobalLayer, CityLayer, MapBounds, CyberPanel } from '../types'
+import type { ViewMode, PanelState, Entity, GlobalLayer, CityLayer, CityBasemap, MapBounds, CyberPanel } from '../types'
 
 interface HUDStore {
   activeView: ViewMode
@@ -18,6 +18,8 @@ interface HUDStore {
   toggleGlobalLayer: (layer: GlobalLayer) => void
   cityLayers: Set<CityLayer>
   toggleCityLayer: (layer: CityLayer) => void
+  cityBasemap: CityBasemap
+  setCityBasemap: (basemap: CityBasemap) => void
   // Cyber view state
   cyberPanel: CyberPanel
   setCyberPanel: (panel: CyberPanel) => void
@@ -67,6 +69,8 @@ export const useHUDStore = create<HUDStore>((set) => ({
       else next.add(layer)
       return { cityLayers: next }
     }),
+  cityBasemap: 'streets-dark',
+  setCityBasemap: (basemap) => set({ cityBasemap: basemap }),
   cyberPanel: 'graph',
   setCyberPanel: (panel) => set((state) => ({
     cyberPanel: panel,

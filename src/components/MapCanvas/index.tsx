@@ -13,13 +13,15 @@ import { mapRef } from '../../mapRef'
 // Build-time token (works in local dev with .env.local)
 const BUILD_TIME_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
+import type { CityBasemap } from '../../types'
+
 const VIEW_CONFIGS = {
   global: {
     mapStyle: 'mapbox://styles/mapbox/dark-v11',
     initialViewState: { longitude: 10, latitude: 20, zoom: 1.8 },
   },
   city: {
-    mapStyle: 'mapbox://styles/mapbox/satellite-streets-v12',
+    mapStyle: 'mapbox://styles/mapbox/dark-v11', // overridden by cityBasemap
     initialViewState: { longitude: -96, latitude: 38, zoom: 3.5 },
   },
   cyber: {
@@ -32,13 +34,21 @@ const VIEW_CONFIGS = {
   },
 }
 
+const CITY_BASEMAP_STYLES: Record<CityBasemap, string> = {
+  'streets-dark': 'mapbox://styles/mapbox/dark-v11',
+  'streets-light': 'mapbox://styles/mapbox/streets-v12',
+  'satellite': 'mapbox://styles/mapbox/satellite-streets-v12',
+}
+
 export function MapCanvas() {
   const activeView = useHUDStore((s) => s.activeView)
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible   = useHUDStore((s) => s.setPanelVisible)
   const setMapZoom   = useHUDStore((s) => s.setMapZoom)
   const setMapBounds = useHUDStore((s) => s.setMapBounds)
+  const cityBasemap  = useHUDStore((s) => s.cityBasemap)
   const config = VIEW_CONFIGS[activeView]
+  const mapStyle = activeView === 'city' ? CITY_BASEMAP_STYLES[cityBasemap] : config.mapStyle
 
   // Use build-time token if available, otherwise fetch from server at runtime
   const [mapboxToken, setMapboxToken] = useState(BUILD_TIME_TOKEN || '')
@@ -236,9 +246,9 @@ export function MapCanvas() {
     <div className="absolute inset-0">
       <Map
         ref={mapRef}
-        key={activeView}
+        key={activeView === 'city' ? `city-${cityBasemap}` : activeView}
         mapboxAccessToken={mapboxToken}
-        mapStyle={config.mapStyle}
+        mapStyle={mapStyle}
         initialViewState={config.initialViewState}
         onLoad={handleMapLoad}
         onMoveEnd={handleMoveEnd}
