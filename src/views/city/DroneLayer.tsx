@@ -1,7 +1,8 @@
 // src/views/city/DroneLayer.tsx
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { Source, Layer } from 'react-map-gl/mapbox'
 import type { DroneFlight } from '../../types'
+import { droneTrailsRef } from '../../droneTrails'
 
 interface DroneLayerProps {
   drones: DroneFlight[]
@@ -26,6 +27,16 @@ export function DroneLayer({ drones }: DroneLayerProps) {
       geometry: { type: 'Point' as const, coordinates: [d.lng, d.lat] },
     })),
   }), [drones])
+
+  // Sync trail data to shared ref so MapCanvas can read it on click
+  useEffect(() => {
+    droneTrailsRef.clear()
+    for (const d of drones) {
+      if (d.trail && d.trail.length > 0) {
+        droneTrailsRef.set(d.id, d.trail)
+      }
+    }
+  }, [drones])
 
   const trailGeoJSON = useMemo(() => ({
     type: 'FeatureCollection' as const,

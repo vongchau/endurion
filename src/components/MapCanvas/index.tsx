@@ -9,6 +9,7 @@ import { CityMarkers } from '../../views/city/CityMarkers'
 import { CyberLayer } from '../../views/cyber/CyberLayer'
 import { SpaceLayer } from '../../views/space/SpaceLayer'
 import { mapRef } from '../../mapRef'
+import { droneTrailsRef } from '../../droneTrails'
 
 // Build-time token (works in local dev with .env.local)
 const BUILD_TIME_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
@@ -138,8 +139,9 @@ export function MapCanvas() {
 
     if (feature.layer?.id === 'drone-points') {
       const p = feature.properties as Record<string, unknown>
+      const droneId = String(p.id ?? '')
       const drone: DroneFlight = {
-        id:            String(p.id ?? ''),
+        id:            droneId,
         sensorId:      String(p.sensorId ?? ''),
         lat:           event.lngLat.lat,
         lng:           event.lngLat.lng,
@@ -153,6 +155,26 @@ export function MapCanvas() {
       }
       setSelectedEntity({ type: 'drone', data: drone })
       setPanelVisible('entity', true)
+
+      // Fit map to the drone's flight trail
+      const trail = droneTrailsRef.get(droneId)
+      const map = mapRef.current?.getMap()
+      if (map && trail && trail.length >= 2) {
+        let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity
+        for (const pt of trail) {
+          if (pt.lng < minLng) minLng = pt.lng
+          if (pt.lat < minLat) minLat = pt.lat
+          if (pt.lng > maxLng) maxLng = pt.lng
+          if (pt.lat > maxLat) maxLat = pt.lat
+        }
+        map.fitBounds([minLng, minLat, maxLng, maxLat], {
+          padding: 80,
+          maxZoom: 16,
+          duration: 1500,
+        })
+      } else if (map) {
+        map.flyTo({ center: [event.lngLat.lng, event.lngLat.lat], zoom: 15, duration: 1500 })
+      }
       return
     }
 
