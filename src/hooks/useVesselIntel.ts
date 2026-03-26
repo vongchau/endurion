@@ -14,17 +14,19 @@ export function useVesselIntel(mmsi: number | null) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!mmsi) { setIntel(null); return }
+    if (!mmsi) return
 
     let cancelled = false
+    const fetchIntel = async () => {
+      try {
+        const res = await fetch(`/api/vessels/${mmsi}/intel`)
+        if (res.ok && !cancelled) setIntel(await res.json())
+      } catch { /* ignore */ }
+      finally { if (!cancelled) setLoading(false) }
+    }
+
     setLoading(true)
-
-    fetch(`/api/vessels/${mmsi}/intel`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => { if (!cancelled && data) setIntel(data) })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false) })
-
+    fetchIntel()
     return () => { cancelled = true }
   }, [mmsi])
 

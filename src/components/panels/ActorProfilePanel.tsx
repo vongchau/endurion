@@ -1,6 +1,7 @@
 // src/components/panels/ActorProfilePanel.tsx — aggregated threat actor detail
 import { useHUDStore } from '../../store'
 import { IocExport } from '../IocExport'
+import { useNow, formatTimeAgo } from '../../hooks/useNow'
 import type { ActorProfile } from '../../types'
 
 function SectionHeader({ label, color }: { label: string; color: string }) {
@@ -27,15 +28,11 @@ export function ActorProfileDetail({ profile }: { profile: ActorProfile }) {
   const removeFromWatchlist = useHUDStore((s) => s.removeFromWatchlist)
   const watchlist = useHUDStore((s) => s.watchlist)
   const isWatched = watchlist.has(profile.name.toLowerCase())
+  const now = useNow()
 
   const scoreColor = profile.threatScore > 80 ? '#ff2d2d' : profile.threatScore > 50 ? '#ffaa00' : '#00d4ff'
 
-  const ago = (ts: number) => {
-    const d = Date.now() - ts
-    return d < 3600_000 ? `${Math.round(d / 60_000)}m ago`
-      : d < 86400_000 ? `${Math.round(d / 3600_000)}h ago`
-      : `${Math.round(d / 86400_000)}d ago`
-  }
+  const ago = (ts: number) => formatTimeAgo(ts, now) + ' ago'
 
   return (
     <div className="px-3 pt-2">

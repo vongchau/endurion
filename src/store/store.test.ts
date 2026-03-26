@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useHUDStore } from './index'
 import { act } from '@testing-library/react'
+import type { GlobalIncident } from '../types'
 
 describe('HUD Store', () => {
   beforeEach(() => {
@@ -27,7 +28,7 @@ describe('HUD Store', () => {
   })
 
   it('sets selected entity', () => {
-    const entity = { type: 'incident' as const, data: { id: 'g1' } as any }
+    const entity = { type: 'incident' as const, data: { id: 'g1' } as unknown as GlobalIncident }
     act(() => useHUDStore.getState().setSelectedEntity(entity))
     expect(useHUDStore.getState().selectedEntity).toEqual(entity)
   })

@@ -32,13 +32,11 @@ export function useAirspaceZones(enabled: boolean, bounds: MapBounds | null) {
   const boundsKey = quantized
     ? `${quantized.minLng},${quantized.minLat},${quantized.maxLng},${quantized.maxLat}`
     : ''
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- boundsKey captures quantized values
   const stableBounds = useMemo(() => quantized, [boundsKey])
 
   useEffect(() => {
-    if (!enabled || !stableBounds) {
-      setZones([])
-      return
-    }
+    if (!enabled || !stableBounds) return
 
     let cancelled = false
 

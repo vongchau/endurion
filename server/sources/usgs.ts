@@ -16,7 +16,7 @@ export async function fetchUSGS(): Promise<GlobalIncident[]> {
   if (!res.ok) throw new Error(`USGS fetch failed: ${res.status}`)
   const json = await res.json()
 
-  return json.features.map((f: any): GlobalIncident => ({
+  return json.features.map((f: { id: string; geometry: { coordinates: number[] }; properties: { place: string; mag: number; time: number; url: string } }): GlobalIncident => ({
     id: `usgs:${f.id}`,
     lat: f.geometry.coordinates[1],
     lng: f.geometry.coordinates[0],

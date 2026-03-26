@@ -231,10 +231,22 @@ app.get('/api/cyber/edge-articles', (c) => {
   return c.json(getEdgeArticles(actorId, targetId))
 })
 
-// Expose Mapbox token at runtime so it doesn't need to be baked in at build time
-app.get('/api/config', (c) => c.json({
-  mapboxToken: process.env.VITE_MAPBOX_TOKEN ?? process.env.MAPBOX_ACCESS_TOKEN ?? '',
-}))
+// Expose Mapbox token at runtime so it doesn't need to be baked in at build time.
+// In production, restrict to same-origin requests to avoid leaking the token.
+app.get('/api/config', (c) => {
+  if (isProd) {
+    const origin = c.req.header('origin') ?? ''
+    const referer = c.req.header('referer') ?? ''
+    const host = c.req.header('host') ?? ''
+    const isSameOrigin = origin.includes(host) || referer.includes(host) || !origin
+    if (!isSameOrigin) {
+      return c.json({ mapboxToken: '' })
+    }
+  }
+  return c.json({
+    mapboxToken: process.env.VITE_MAPBOX_TOKEN ?? process.env.MAPBOX_ACCESS_TOKEN ?? '',
+  })
+})
 
 // In production, serve the Vite-built frontend from dist/
 if (isProd) {

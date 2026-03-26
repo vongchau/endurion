@@ -91,7 +91,7 @@ export async function fetchSpaceWeather(): Promise<SpaceWeather> {
   // Parse current scales (index "0" is current)
   let scales: SpaceWeatherScales | null = null
   if (scalesRes.status === 'fulfilled' && scalesRes.value.ok) {
-    const raw = await scalesRes.value.json() as Record<string, any>
+    const raw = await scalesRes.value.json() as Record<string, Record<string, unknown>>
     const current = raw['0']
     if (current) {
       scales = {

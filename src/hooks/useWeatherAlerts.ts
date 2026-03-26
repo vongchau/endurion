@@ -7,6 +7,7 @@ export function useWeatherAlerts(enabled: boolean, center: { lat: number; lng: n
   const [loading, setLoading] = useState(false)
 
   const centerKey = center ? `${center.lat.toFixed(2)},${center.lng.toFixed(2)}` : ''
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- centerKey captures center values
   const stableCenter = useMemo(() => center, [centerKey])
 
   useEffect(() => {

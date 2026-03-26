@@ -1,8 +1,9 @@
 // src/components/panels/EntityPanel/index.tsx
-import { useRef } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
 import { useVesselIntel } from '../../../hooks/useVesselIntel'
+import { useNow, formatTimeAgo } from '../../../hooks/useNow'
 import { IocExport } from '../../IocExport'
 import type { GlobalIncident, CyberNode, Satellite, AISVessel, DroneFlight, NewsArticle, CyberNewsArticle, Severity, NewsPriority, ActorProfile, CyberClusterData, TrafficIncident, WeatherAlert, CrimeIncident, LowAltAircraft, PowerOutage } from '../../../types'
 import { EnrichedCveSection } from '../CveDetail'
@@ -290,7 +291,7 @@ function CyberNewsDetail({ data }: { data: CyberNewsArticle }) {
         <button
           onClick={() => {
             const key = data.sourceActor!.toLowerCase()
-            watchlist.has(key) ? removeFromWatchlist(key) : addToWatchlist(key)
+            if (watchlist.has(key)) { removeFromWatchlist(key) } else { addToWatchlist(key) }
           }}
           className="w-full mb-1 px-2 py-1 rounded border text-center font-mono text-[9px] tracking-wider transition-colors"
           style={{
@@ -412,6 +413,7 @@ const CLUSTER_PRIORITY_COLORS: Record<NewsPriority, string> = {
 }
 
 function NewsClusterDetail({ data, onSelectArticle }: { data: NewsArticle[]; onSelectArticle: (a: NewsArticle) => void }) {
+  const now = useNow()
   const byCategory = new Map<string, number>()
   for (const a of data) byCategory.set(a.category, (byCategory.get(a.category) ?? 0) + 1)
   const categories = [...byCategory.entries()].sort((a, b) => b[1] - a[1])
@@ -443,10 +445,6 @@ function NewsClusterDetail({ data, onSelectArticle }: { data: NewsArticle[]; onS
       <div className="space-y-0">
         {data.map((article) => {
           const priorityColor = CLUSTER_PRIORITY_COLORS[article.priority]
-          const ago = Date.now() - article.timestamp
-          const timeStr = ago < 3600_000 ? `${Math.round(ago / 60_000)}m`
-            : ago < 86400_000 ? `${Math.round(ago / 3600_000)}h`
-            : `${Math.round(ago / 86400_000)}d`
 
           return (
             <button
@@ -466,7 +464,7 @@ function NewsClusterDetail({ data, onSelectArticle }: { data: NewsArticle[]; onS
                     {article.locationName && (
                       <span className="font-mono text-[8px] text-hud-purple truncate">{article.locationName}</span>
                     )}
-                    <span className="font-mono text-[8px] text-hud-dim/50 ml-auto shrink-0">{timeStr}</span>
+                    <span className="font-mono text-[8px] text-hud-dim/50 ml-auto shrink-0">{formatTimeAgo(article.timestamp, now)}</span>
                   </div>
                 </div>
               </div>
@@ -479,6 +477,7 @@ function NewsClusterDetail({ data, onSelectArticle }: { data: NewsArticle[]; onS
 }
 
 function EdgeDetail({ articles, onSelectArticle }: { articles: CyberNewsArticle[]; onSelectArticle: (a: CyberNewsArticle) => void }) {
+  const now = useNow()
   if (articles.length === 0) return null
 
   const actor = articles[0]?.sourceActor ?? 'Unknown'
@@ -497,10 +496,6 @@ function EdgeDetail({ articles, onSelectArticle }: { articles: CyberNewsArticle[
 
       <div className="space-y-0 mt-2">
         {articles.map(a => {
-          const ago = Date.now() - a.timestamp
-          const timeStr = ago < 3600_000 ? `${Math.round(ago / 60_000)}m`
-            : ago < 86400_000 ? `${Math.round(ago / 3600_000)}h`
-            : `${Math.round(ago / 86400_000)}d`
           return (
             <button
               key={a.id}
@@ -515,7 +510,7 @@ function EdgeDetail({ articles, onSelectArticle }: { articles: CyberNewsArticle[
                   {a.severity.toUpperCase()}
                 </span>
                 <span className="font-mono text-[8px] text-hud-dim">{a.attackType.replace(/_/g, ' ')}</span>
-                <span className="font-mono text-[8px] text-hud-dim/50 ml-auto">{timeStr}</span>
+                <span className="font-mono text-[8px] text-hud-dim/50 ml-auto">{formatTimeAgo(a.timestamp, now)}</span>
               </div>
             </button>
           )
@@ -530,6 +525,7 @@ function CyberClusterDetail({ data, onSelectArticle, onViewProfile }: {
   onSelectArticle: (a: CyberNewsArticle) => void
   onViewProfile: () => void
 }) {
+  const now = useNow()
   const byAttackType = new Map<string, number>()
   for (const a of data.articles) byAttackType.set(a.attackType, (byAttackType.get(a.attackType) ?? 0) + 1)
   const attackTypes = [...byAttackType.entries()].sort((a, b) => b[1] - a[1])
@@ -572,10 +568,6 @@ function CyberClusterDetail({ data, onSelectArticle, onViewProfile }: {
       {/* Article list */}
       <div className="space-y-0">
         {data.articles.map(a => {
-          const ago = Date.now() - a.timestamp
-          const timeStr = ago < 3600_000 ? `${Math.round(ago / 60_000)}m`
-            : ago < 86400_000 ? `${Math.round(ago / 3600_000)}h`
-            : `${Math.round(ago / 86400_000)}d`
           const sevColor = a.severity === 'critical' ? '#ff2d2d' : a.severity === 'high' ? '#ffaa00' : a.severity === 'medium' ? '#00d4ff' : '#4a6080'
 
           return (
@@ -602,7 +594,7 @@ function CyberClusterDetail({ data, onSelectArticle, onViewProfile }: {
                     {a.target && data.nodeType === 'actor' && (
                       <span className="font-mono text-[8px] text-hud-cyan truncate">{a.target}</span>
                     )}
-                    <span className="font-mono text-[8px] text-hud-dim/50 ml-auto shrink-0">{timeStr}</span>
+                    <span className="font-mono text-[8px] text-hud-dim/50 ml-auto shrink-0">{formatTimeAgo(a.timestamp, now)}</span>
                   </div>
                 </div>
               </div>
@@ -787,18 +779,16 @@ export function EntityPanel() {
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
   // Stash cluster data so we can navigate back from a drilled-down article
-  const clusterRef = useRef<NewsArticle[] | null>(null)
-  const cyberClusterRef = useRef<CyberClusterData | null>(null)
-  const canGoBack = (clusterRef.current !== null && selectedEntity?.type === 'news') ||
-    (cyberClusterRef.current !== null && selectedEntity?.type === 'cyberNews')
+  const [clusterData, setClusterData] = useState<NewsArticle[] | null>(null)
+  const [cyberClusterData, setCyberClusterData] = useState<CyberClusterData | null>(null)
 
-  // Clear stash when entity changes to something unrelated
-  if (selectedEntity && selectedEntity.type !== 'news' && selectedEntity.type !== 'newsCluster') {
-    clusterRef.current = null
-  }
-  if (selectedEntity && selectedEntity.type !== 'cyberNews' && selectedEntity.type !== 'cyberCluster' && selectedEntity.type !== 'actorProfile') {
-    cyberClusterRef.current = null
-  }
+  // Derive whether stash is relevant based on current entity type (no effect needed)
+  const activeCluster = selectedEntity?.type === 'news' || selectedEntity?.type === 'newsCluster'
+    ? clusterData : null
+  const activeCyberCluster = selectedEntity?.type === 'cyberNews' || selectedEntity?.type === 'cyberCluster' || selectedEntity?.type === 'actorProfile'
+    ? cyberClusterData : null
+  const canGoBack = (activeCluster !== null && selectedEntity?.type === 'news') ||
+    (activeCyberCluster !== null && (selectedEntity?.type === 'cyberNews' || selectedEntity?.type === 'actorProfile'))
 
   return (
     <AnimatePresence>
@@ -814,10 +804,10 @@ export function EntityPanel() {
               {canGoBack && (
                 <button
                   onClick={() => {
-                    if (cyberClusterRef.current && (selectedEntity?.type === 'cyberNews' || selectedEntity?.type === 'actorProfile')) {
-                      setSelectedEntity({ type: 'cyberCluster', data: cyberClusterRef.current })
-                    } else if (clusterRef.current) {
-                      setSelectedEntity({ type: 'newsCluster', data: clusterRef.current })
+                    if (activeCyberCluster && (selectedEntity?.type === 'cyberNews' || selectedEntity?.type === 'actorProfile')) {
+                      setSelectedEntity({ type: 'cyberCluster', data: activeCyberCluster })
+                    } else if (activeCluster) {
+                      setSelectedEntity({ type: 'newsCluster', data: activeCluster })
                     }
                   }}
                   className="font-mono text-[10px] text-hud-dim hover:text-hud-cyan transition-colors mr-1"
@@ -828,11 +818,11 @@ export function EntityPanel() {
               )}
               <div className="w-1 h-4 bg-hud-purple rounded-full" />
               <span className="font-mono text-[10px] tracking-widest text-hud-purple">
-                {canGoBack ? (cyberClusterRef.current ? 'THREAT DETAIL' : 'ARTICLE DETAIL') : 'ENTITY DETAILS'}
+                {canGoBack ? (activeCyberCluster ? 'THREAT DETAIL' : 'ARTICLE DETAIL') : 'ENTITY DETAILS'}
               </span>
             </div>
             {selectedEntity && (
-              <button onClick={() => { clusterRef.current = null; cyberClusterRef.current = null; setSelectedEntity(null) }} className="text-hud-dim hover:text-hud-text font-mono text-xs">×</button>
+              <button onClick={() => { setClusterData(null); setCyberClusterData(null); setSelectedEntity(null) }} className="text-hud-dim hover:text-hud-text font-mono text-xs">×</button>
             )}
           </div>
 
@@ -855,7 +845,7 @@ export function EntityPanel() {
                 <NewsClusterDetail
                   data={selectedEntity.data as NewsArticle[]}
                   onSelectArticle={(a) => {
-                    clusterRef.current = selectedEntity.data as NewsArticle[]
+                    setClusterData(selectedEntity.data as NewsArticle[])
                     setSelectedEntity({ type: 'news', data: a })
                   }}
                 />
@@ -867,12 +857,12 @@ export function EntityPanel() {
                 <CyberClusterDetail
                   data={selectedEntity.data as CyberClusterData}
                   onSelectArticle={(a) => {
-                    cyberClusterRef.current = selectedEntity.data as CyberClusterData
+                    setCyberClusterData(selectedEntity.data as CyberClusterData)
                     setSelectedEntity({ type: 'cyberNews', data: a })
                   }}
                   onViewProfile={() => {
                     const cluster = selectedEntity.data as CyberClusterData
-                    cyberClusterRef.current = cluster
+                    setCyberClusterData(cluster)
                     fetch(`/api/cyber/actor/${encodeURIComponent(cluster.label)}`)
                       .then(res => res.ok ? res.json() : null)
                       .then(profile => {

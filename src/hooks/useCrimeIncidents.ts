@@ -13,6 +13,7 @@ export function useCrimeIncidents(enabled: boolean, bounds: MapBounds | null) {
 
   const quantized = bounds ? quantize(bounds) : null
   const boundsKey = quantized ? `${quantized.minLng},${quantized.minLat},${quantized.maxLng},${quantized.maxLat}` : ''
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- boundsKey captures quantized values
   const stableBounds = useMemo(() => quantized, [boundsKey])
 
   useEffect(() => {

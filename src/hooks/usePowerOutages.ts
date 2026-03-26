@@ -7,6 +7,7 @@ export function usePowerOutages(enabled: boolean, center: { lat: number; lng: nu
   const [loading, setLoading] = useState(false)
 
   const centerKey = center ? `${center.lat.toFixed(1)},${center.lng.toFixed(1)}` : ''
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- centerKey captures center values
   const stableCenter = useMemo(() => center, [centerKey])
 
   useEffect(() => {
