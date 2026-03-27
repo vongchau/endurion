@@ -6,3 +6,4 @@ dist/
 .playwright-mcp/
 snapshot*.md
 *.png
+data/
