@@ -1,8 +1,9 @@
 // src/views/city/DroneLayer.tsx — tactical UAS visualization
 import { useMemo, useEffect } from 'react'
-import { Source, Layer } from 'react-map-gl/mapbox'
+import { Source, Layer, Marker } from 'react-map-gl/mapbox'
 import type { DroneFlight } from '../../types'
 import { droneTrailsRef } from '../../droneTrails'
+import { useHUDStore } from '../../store'
 
 // Altitude color bands (meters)
 // green: <50m | cyan: 50-120m | amber: 120-200m | red: >200m (above FAA 400ft limit)
@@ -33,6 +34,9 @@ interface DroneLayerProps {
 }
 
 export function DroneLayer({ drones }: DroneLayerProps) {
+  const scrubPoint = useHUDStore((s) => s.droneScrubPoint)
+  const historyTrail = useHUDStore((s) => s.droneHistoryTrail)
+
   // Sync trail data to shared ref so MapCanvas can read it on click
   useEffect(() => {
     droneTrailsRef.clear()
@@ -106,9 +110,57 @@ export function DroneLayer({ drones }: DroneLayerProps) {
     return { type: 'FeatureCollection' as const, features }
   }, [drones])
 
+  // --- Extended history trail (from SQLite, aligned with chart) ---
+  const historyGeoJSON = useMemo(() => {
+    if (historyTrail.length < 2) return { type: 'FeatureCollection' as const, features: [] as GeoJSON.Feature[] }
+    const features: GeoJSON.Feature[] = []
+    for (let i = 0; i < historyTrail.length - 1; i++) {
+      const p0 = historyTrail[i]
+      const p1 = historyTrail[i + 1]
+      const recency = (i + 1) / (historyTrail.length - 1)
+      features.push({
+        type: 'Feature',
+        properties: { speed: p1.speed, recency },
+        geometry: {
+          type: 'LineString',
+          coordinates: [[p0.lng, p0.lat], [p1.lng, p1.lat]],
+        },
+      })
+    }
+    return { type: 'FeatureCollection' as const, features }
+  }, [historyTrail])
+
   return (
     <>
-      {/* === TRAIL SEGMENTS === */}
+      {/* === EXTENDED HISTORY TRAIL (from SQLite, shown when drone is selected) === */}
+      {historyTrail.length >= 2 && (
+        <Source id="drone-history-trail" type="geojson" data={historyGeoJSON}>
+          <Layer
+            id="drone-history-glow"
+            type="line"
+            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={{
+              'line-color': SPEED_COLOR_EXPR,
+              'line-opacity': ['interpolate', ['linear'], ['get', 'recency'], 0, 0.01, 1, 0.1],
+              'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2, 13, 4, 16, 6],
+              'line-blur': 3,
+            }}
+          />
+          <Layer
+            id="drone-history-lines"
+            type="line"
+            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={{
+              'line-color': SPEED_COLOR_EXPR,
+              'line-opacity': ['interpolate', ['linear'], ['get', 'recency'], 0, 0.05, 1, 0.5],
+              'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 13, 1.5, 16, 2.5],
+              'line-dasharray': [2, 2],
+            }}
+          />
+        </Source>
+      )}
+
+      {/* === LIVE TRAIL SEGMENTS === */}
       <Source id="drone-trail-segments" type="geojson" data={trailGeoJSON}>
         {/* Trail glow (wide, blurred, behind) */}
         <Layer
@@ -254,6 +306,29 @@ export function DroneLayer({ drones }: DroneLayerProps) {
           }}
         />
       </Source>
+
+      {/* Telemetry scrub marker — shown when hovering the altitude/speed chart */}
+      {scrubPoint && (
+        <Marker longitude={scrubPoint.lng} latitude={scrubPoint.lat} anchor="center">
+          <div className="relative flex items-center justify-center">
+            {/* Outer pulse ring */}
+            <span className="absolute w-8 h-8 rounded-full border-2 border-hud-amber animate-ping opacity-30" />
+            {/* Inner marker */}
+            <span
+              className="relative w-3 h-3 rounded-full border-2"
+              style={{
+                borderColor: '#ffaa00',
+                backgroundColor: '#ffaa0040',
+                boxShadow: '0 0 10px #ffaa00, 0 0 20px #ffaa0060',
+              }}
+            />
+            {/* Label */}
+            <span className="absolute -top-5 whitespace-nowrap font-mono text-[8px] tracking-wider text-hud-amber bg-hud-panel/80 px-1 rounded">
+              {scrubPoint.altitude}m · {scrubPoint.speed}m/s
+            </span>
+          </div>
+        </Marker>
+      )}
     </>
   )
 }
