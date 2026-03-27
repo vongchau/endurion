@@ -137,7 +137,7 @@ export function MapCanvas() {
       return
     }
 
-    if (feature.layer?.id === 'drone-points') {
+    if (feature.layer?.id === 'drone-points' || feature.layer?.id === 'drone-direction' || feature.layer?.id === 'drone-grounded-icon') {
       const p = feature.properties as Record<string, unknown>
       const droneId = String(p.id ?? '')
       // Use the feature's actual geometry, not the cursor position
@@ -282,7 +282,7 @@ export function MapCanvas() {
         onClick={handleMapClick}
         interactiveLayerIds={
           activeView === 'global' ? ['vessel-points', 'news-points', 'news-clusters'] :
-          activeView === 'city' ? ['drone-points', 'traffic-points', 'crime-points', 'weather-fill'] :
+          activeView === 'city' ? ['drone-direction', 'drone-grounded-icon', 'drone-points', 'traffic-points', 'crime-points', 'weather-fill'] :
           []
         }
         projection={activeView === 'global' || activeView === 'space' ? 'globe' : 'mercator'}
