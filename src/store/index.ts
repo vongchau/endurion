@@ -24,9 +24,11 @@ interface HUDStore {
   dronePlayback: DronePlaybackMode
   dronePlaybackTime: number | null
   dronePlaybackSpeed: number
+  droneTimelineVisible: boolean
   setDronePlayback: (mode: DronePlaybackMode) => void
   setDronePlaybackTime: (time: number | null) => void
   setDronePlaybackSpeed: (speed: number) => void
+  setDroneTimelineVisible: (visible: boolean) => void
   // Cyber view state
   cyberPanel: CyberPanel
   setCyberPanel: (panel: CyberPanel) => void
@@ -81,12 +83,14 @@ export const useHUDStore = create<HUDStore>((set) => ({
   dronePlayback: 'live',
   dronePlaybackTime: null,
   dronePlaybackSpeed: 1,
+  droneTimelineVisible: true,
   setDronePlayback: (mode) => set({
     dronePlayback: mode,
     dronePlaybackTime: mode === 'live' ? null : Date.now() - 60 * 60 * 1000,
   }),
   setDronePlaybackTime: (time) => set({ dronePlaybackTime: time }),
   setDronePlaybackSpeed: (speed) => set({ dronePlaybackSpeed: speed }),
+  setDroneTimelineVisible: (visible) => set({ droneTimelineVisible: visible }),
   cyberPanel: 'graph',
   setCyberPanel: (panel) => set((state) => ({
     cyberPanel: panel,
