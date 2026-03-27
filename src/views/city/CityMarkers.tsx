@@ -2,6 +2,7 @@
 import { useMemo } from 'react'
 import { useHUDStore } from '../../store'
 import { useDrones } from '../../hooks/useDrones'
+import { useDroneHistory } from '../../hooks/useDroneHistory'
 import { useAirspaceZones } from '../../hooks/useAirspaceZones'
 import { useTrafficIncidents } from '../../hooks/useTrafficIncidents'
 import { useWeatherAlerts } from '../../hooks/useWeatherAlerts'
@@ -30,7 +31,22 @@ export function CityMarkers() {
   const showAircraft = cityLayers.has('aircraft')
   const showPower    = cityLayers.has('power')
 
-  const { drones }              = useDrones(showUAS, mapBounds)
+  const dronePlayback = useHUDStore((s) => s.dronePlayback)
+  const dronePlaybackTime = useHUDStore((s) => s.dronePlaybackTime)
+  const isLive = dronePlayback === 'live'
+
+  // Live drones — only fetch when in live mode
+  const { drones: liveDrones } = useDrones(showUAS && isLive, mapBounds)
+
+  // Historical drones — only fetch when in history mode
+  const { getDronesAtTime } = useDroneHistory(showUAS && !isLive)
+  const historyDrones = useMemo(() => {
+    if (isLive || !dronePlaybackTime) return []
+    return getDronesAtTime(dronePlaybackTime)
+  }, [isLive, dronePlaybackTime, getDronesAtTime])
+
+  const activeDrones = isLive ? liveDrones : historyDrones
+
   const { zones }               = useAirspaceZones(showZones, mapBounds)
   const { data: trafficData }   = useTrafficIncidents(showTraffic, mapBounds)
   const { data: crimeData }     = useCrimeIncidents(showCrime, mapBounds)
@@ -55,7 +71,7 @@ export function CityMarkers() {
       {showZones && <AirspaceZoneLayer zones={zones} />}
       {showCrime && <CrimeLayer incidents={crimeData} />}
       {showTraffic && <TrafficLayer incidents={trafficData} />}
-      {showUAS && <DroneLayer drones={drones} />}
+      {showUAS && <DroneLayer drones={activeDrones} />}
       {showAircraft && (
         <AircraftLayer
           aircraft={aircraftData}

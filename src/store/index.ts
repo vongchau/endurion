@@ -1,6 +1,6 @@
 // src/store/index.ts
 import { create } from 'zustand'
-import type { ViewMode, PanelState, Entity, GlobalLayer, CityLayer, CityBasemap, MapBounds, CyberPanel } from '../types'
+import type { ViewMode, PanelState, Entity, GlobalLayer, CityLayer, CityBasemap, MapBounds, CyberPanel, DronePlaybackMode } from '../types'
 
 interface HUDStore {
   activeView: ViewMode
@@ -20,6 +20,13 @@ interface HUDStore {
   toggleCityLayer: (layer: CityLayer) => void
   cityBasemap: CityBasemap
   setCityBasemap: (basemap: CityBasemap) => void
+  // Drone playback
+  dronePlayback: DronePlaybackMode
+  dronePlaybackTime: number | null
+  dronePlaybackSpeed: number
+  setDronePlayback: (mode: DronePlaybackMode) => void
+  setDronePlaybackTime: (time: number | null) => void
+  setDronePlaybackSpeed: (speed: number) => void
   // Cyber view state
   cyberPanel: CyberPanel
   setCyberPanel: (panel: CyberPanel) => void
@@ -71,6 +78,15 @@ export const useHUDStore = create<HUDStore>((set) => ({
     }),
   cityBasemap: 'streets-dark',
   setCityBasemap: (basemap) => set({ cityBasemap: basemap }),
+  dronePlayback: 'live',
+  dronePlaybackTime: null,
+  dronePlaybackSpeed: 1,
+  setDronePlayback: (mode) => set({
+    dronePlayback: mode,
+    dronePlaybackTime: mode === 'live' ? null : Date.now() - 60 * 60 * 1000,
+  }),
+  setDronePlaybackTime: (time) => set({ dronePlaybackTime: time }),
+  setDronePlaybackSpeed: (speed) => set({ dronePlaybackSpeed: speed }),
   cyberPanel: 'graph',
   setCyberPanel: (panel) => set((state) => ({
     cyberPanel: panel,

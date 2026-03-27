@@ -2,12 +2,13 @@
 import { EventEmitter } from 'events'
 import type { DroneFlight } from '../src/types'
 import { fetchDronetag } from './sources/dronetag'
+import { insertPositions } from './droneDb'
 
 const POLL_INTERVAL = 5_000
 const STALE_MS      = 5 * 60 * 1000
 const MAX_TRAIL     = 60  // ~5 min at 5s polling
 
-let droneCache = new Map<string, DroneFlight>()
+const droneCache = new Map<string, DroneFlight>()
 let lastBbox   = ''
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
@@ -71,7 +72,21 @@ async function poll() {
       }
     }
 
-    // Purge stale drones
+    // Persist all positions to SQLite for historical playback
+    insertPositions(raw.map(d => ({
+      operationId: d.operationId,
+      sensorId: d.sensorId,
+      lng: d.lng,
+      lat: d.lat,
+      altitude: d.altitude,
+      speed: d.speed,
+      verticalSpeed: d.verticalSpeed,
+      heading: d.heading,
+      state: d.state,
+      timestamp: d.timestamp,
+    })))
+
+    // Purge stale drones from in-memory cache
     const cutoff = now - STALE_MS
     for (const [id, d] of droneCache) {
       if (d.timestamp < cutoff) droneCache.delete(id)

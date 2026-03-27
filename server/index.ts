@@ -9,6 +9,7 @@ import { startPoller } from './poller'
 import { getDensityZones, getMilitaryCandidates, getChokepoints, getDisruptions, getStats, getAllVessels, getVesselsInBounds, getSnapshot, getVesselIntel } from './aisCache'
 import { startAis, isConnected as aisConnected } from './ais'
 import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneCache'
+import { getHistory } from './droneDb'
 import { getTrafficIncidents, setTrafficBbox, startTrafficPoller } from './trafficCache'
 import { getWeatherAlerts, setWeatherPoint, startWeatherPoller } from './weatherCache'
 import { getCrimeIncidents, setCrimeBbox, startCrimePoller } from './crimeCache'
@@ -105,6 +106,15 @@ app.get('/api/drones/viewport', async (c) => {
   }
   setDroneBbox(minLng, minLat, maxLng, maxLat)
   return c.json(getDrones())
+})
+
+app.get('/api/drones/history', (c) => {
+  const from = parseInt(c.req.query('from') ?? '', 10)
+  const to   = parseInt(c.req.query('to') ?? '', 10)
+  if (isNaN(from) || isNaN(to)) return c.json({ error: 'Missing from/to params' }, 400)
+  const maxRange = 25 * 60 * 60 * 1000 // 25h max to prevent huge queries
+  if (to - from > maxRange) return c.json({ error: 'Range too large (max 25h)' }, 400)
+  return c.json(getHistory(from, to))
 })
 
 app.get('/api/city/weather', async (c) => {

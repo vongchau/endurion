@@ -5,6 +5,21 @@ export type ViewMode = 'global' | 'city' | 'cyber' | 'space'
 
 export type CityBasemap = 'streets-dark' | 'streets-light' | 'satellite'
 
+export type DronePlaybackMode = 'live' | 'history'
+
+export interface DroneHistoryPosition {
+  operationId: string
+  sensorId: string
+  lng: number
+  lat: number
+  altitude: number
+  speed: number
+  verticalSpeed: number
+  heading: number
+  state: string
+  timestamp: number
+}
+
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'nominal'
 
 export interface GlobalIncident {
