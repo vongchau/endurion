@@ -8,6 +8,7 @@ import { IocExport } from '../../IocExport'
 import type { GlobalIncident, CyberNode, Satellite, AISVessel, DroneFlight, NewsArticle, CyberNewsArticle, Severity, NewsPriority, ActorProfile, CyberClusterData, TrafficIncident, WeatherAlert, CrimeIncident, LowAltAircraft, PowerOutage } from '../../../types'
 import { EnrichedCveSection } from '../CveDetail'
 import { ActorProfileDetail } from '../ActorProfilePanel'
+import { DroneFlightChart } from '../DroneFlightChart'
 
 const SEVERITY_BG: Record<Severity, string> = {
   critical: 'bg-hud-red/10 text-hud-red border-hud-red/30',
@@ -632,6 +633,10 @@ function DroneDetail({ data }: { data: DroneFlight }) {
         <DataRow label="V/S" value={`${data.verticalSpeed > 0 ? '+' : ''}${data.verticalSpeed.toFixed(1)} m/s`} />
       )}
       <DataRow label="LAST SEEN" value={new Date(data.timestamp).toISOString().replace('T', ' ').slice(0, 19) + 'Z'} />
+
+      {/* Altitude + Speed telemetry charts */}
+      <SectionHeader label="TELEMETRY" color="#7b2fff" />
+      <DroneFlightChart operationId={data.id} />
     </div>
   )
 }

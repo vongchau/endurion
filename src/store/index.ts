@@ -29,6 +29,12 @@ interface HUDStore {
   setDronePlaybackTime: (time: number | null) => void
   setDronePlaybackSpeed: (speed: number) => void
   setDroneTimelineVisible: (visible: boolean) => void
+  // Drone telemetry scrub marker (shown on map when hovering chart)
+  droneScrubPoint: { lng: number; lat: number; altitude: number; speed: number } | null
+  setDroneScrubPoint: (point: { lng: number; lat: number; altitude: number; speed: number } | null) => void
+  // Extended history trail for the selected drone (from SQLite, aligned with chart)
+  droneHistoryTrail: { lng: number; lat: number; speed: number; timestamp: number }[]
+  setDroneHistoryTrail: (trail: { lng: number; lat: number; speed: number; timestamp: number }[]) => void
   // Cyber view state
   cyberPanel: CyberPanel
   setCyberPanel: (panel: CyberPanel) => void
@@ -91,6 +97,10 @@ export const useHUDStore = create<HUDStore>((set) => ({
   setDronePlaybackTime: (time) => set({ dronePlaybackTime: time }),
   setDronePlaybackSpeed: (speed) => set({ dronePlaybackSpeed: speed }),
   setDroneTimelineVisible: (visible) => set({ droneTimelineVisible: visible }),
+  droneScrubPoint: null,
+  setDroneScrubPoint: (point) => set({ droneScrubPoint: point }),
+  droneHistoryTrail: [],
+  setDroneHistoryTrail: (trail) => set({ droneHistoryTrail: trail }),
   cyberPanel: 'graph',
   setCyberPanel: (panel) => set((state) => ({
     cyberPanel: panel,

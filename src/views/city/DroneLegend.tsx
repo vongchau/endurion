@@ -1,13 +1,6 @@
 // src/views/city/DroneLegend.tsx — UAS color/symbol legend overlay
 import { motion } from 'framer-motion'
 
-const ALT_BANDS = [
-  { label: '< 50m', color: '#00ff88' },
-  { label: '50–120m', color: '#00d4ff' },
-  { label: '120–200m', color: '#ffaa00' },
-  { label: '> 200m', color: '#ff2d2d' },
-]
-
 const SPEED_BANDS = [
   { label: '< 2 m/s', color: '#4a6080', desc: 'Hovering' },
   { label: '2–10 m/s', color: '#7b2fff', desc: 'Slow' },
@@ -18,31 +11,23 @@ const SPEED_BANDS = [
 
 const STATE_ICONS = [
   { label: 'Airborne', symbol: '▲', desc: 'Arrow shows heading' },
-  { label: 'Grounded', symbol: '■', desc: 'Hollow dot, dimmed' },
+  { label: 'Grounded', symbol: '■', desc: 'Dimmed square' },
 ]
 
-export function DroneLegend() {
+interface DroneLegendProps {
+  entityOpen: boolean
+}
+
+export function DroneLegend({ entityOpen }: DroneLegendProps) {
   return (
     <motion.div
       initial={{ opacity: 0, x: 10 }}
       animate={{ opacity: 1, x: 0 }}
-      className="fixed right-4 bottom-20 z-40 w-48 rounded-lg border border-hud-purple/20 bg-hud-panel/90 backdrop-blur-md overflow-hidden"
+      className="fixed bottom-32 z-40 w-48 rounded-lg border border-hud-purple/20 bg-hud-panel/90 backdrop-blur-md overflow-hidden transition-[right] duration-300"
+      style={{ right: entityOpen ? '20.5rem' : '1rem' }}
     >
       <div className="px-3 py-1.5 border-b border-hud-dim/10">
         <span className="font-mono text-[8px] tracking-[0.2em] text-hud-purple">UAS LEGEND</span>
-      </div>
-
-      {/* Altitude — marker color */}
-      <div className="px-3 py-1.5 border-b border-hud-dim/10">
-        <span className="font-mono text-[7px] tracking-wider text-hud-dim">ALTITUDE (MARKER)</span>
-        <div className="mt-1 space-y-0.5">
-          {ALT_BANDS.map(({ label, color }) => (
-            <div key={label} className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-              <span className="font-mono text-[8px]" style={{ color }}>{label}</span>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Speed — trail color */}

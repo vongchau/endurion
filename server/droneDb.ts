@@ -92,6 +92,24 @@ export function getHistory(fromMs: number, toMs: number): HistoryPosition[] {
   return queryStmt.all(fromMs, toMs) as HistoryPosition[]
 }
 
+// --- Read single drone history (full resolution) ---
+
+const queryDroneStmt = db.prepare(`
+  SELECT
+    operation_id AS operationId,
+    sensor_id AS sensorId,
+    lng, lat, altitude, speed,
+    vertical_speed AS verticalSpeed,
+    heading, state, timestamp
+  FROM drone_positions
+  WHERE operation_id = ? AND timestamp BETWEEN ? AND ?
+  ORDER BY timestamp ASC
+`)
+
+export function getDroneHistory(operationId: string, fromMs: number, toMs: number): HistoryPosition[] {
+  return queryDroneStmt.all(operationId, fromMs, toMs) as HistoryPosition[]
+}
+
 // --- Purge (7-day retention) ---
 
 const RETENTION_MS = 7 * 24 * 60 * 60 * 1000

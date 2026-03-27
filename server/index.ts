@@ -9,7 +9,7 @@ import { startPoller } from './poller'
 import { getDensityZones, getMilitaryCandidates, getChokepoints, getDisruptions, getStats, getAllVessels, getVesselsInBounds, getSnapshot, getVesselIntel } from './aisCache'
 import { startAis, isConnected as aisConnected } from './ais'
 import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneCache'
-import { getHistory } from './droneDb'
+import { getHistory, getDroneHistory } from './droneDb'
 import { getTrafficIncidents, setTrafficBbox, startTrafficPoller } from './trafficCache'
 import { getWeatherAlerts, setWeatherPoint, startWeatherPoller } from './weatherCache'
 import { getCrimeIncidents, setCrimeBbox, startCrimePoller } from './crimeCache'
@@ -106,6 +106,14 @@ app.get('/api/drones/viewport', async (c) => {
   }
   setDroneBbox(minLng, minLat, maxLng, maxLat)
   return c.json(getDrones())
+})
+
+app.get('/api/drones/:operationId/history', (c) => {
+  const operationId = c.req.param('operationId')
+  const hours = parseInt(c.req.query('hours') ?? '1', 10)
+  const to = Date.now()
+  const from = to - Math.min(hours, 24) * 60 * 60 * 1000
+  return c.json(getDroneHistory(operationId, from, to))
 })
 
 app.get('/api/drones/history', (c) => {
