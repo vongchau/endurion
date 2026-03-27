@@ -10,7 +10,7 @@ export function Timeline() {
   const activeView = useHUDStore((s) => s.activeView)
   const [scrubPos, setScrubPos] = useState(75) // 0-100 percent
 
-  if (activeView === 'global') return null
+  if (activeView === 'global' || activeView === 'city') return null
 
   return (
     <AnimatePresence>

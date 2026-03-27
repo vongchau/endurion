@@ -7,13 +7,14 @@ export function DroneTimelineWrapper() {
   const activeView = useHUDStore((s) => s.activeView)
   const cityLayers = useHUDStore((s) => s.cityLayers)
   const dronePlayback = useHUDStore((s) => s.dronePlayback)
+  const timelineVisible = useHUDStore((s) => s.droneTimelineVisible)
 
   const showUAS = activeView === 'city' && cityLayers.has('uas')
   const isHistory = dronePlayback === 'history'
 
   const { timeRange, positionCount } = useDroneHistory(showUAS && isHistory)
 
-  if (!showUAS) return null
+  if (!showUAS || !timelineVisible) return null
 
   return (
     <DroneTimeline

@@ -12,6 +12,7 @@ import { CyberDashboard } from './views/cyber/CyberDashboard'
 import { CyberTimeline } from './views/cyber/CyberTimeline'
 import { MitreHeatmap } from './views/cyber/MitreHeatmap'
 import { DroneTimelineWrapper } from './views/city/DroneTimelineWrapper'
+import { CityToolkit } from './views/city/CityToolkit'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useHUDStore } from './store'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
@@ -82,6 +83,7 @@ export default function App() {
         {activeView === 'cyber' && <CyberDashboard />}
         {activeView === 'cyber' && <CyberTimeline />}
         {activeView === 'cyber' && <MitreHeatmap />}
+        {activeView === 'city' && <CityToolkit />}
         <DroneTimelineWrapper />
         <CommandSwitcher />
       </div>

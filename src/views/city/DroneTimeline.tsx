@@ -7,11 +7,6 @@ import { useNow } from '../../hooks/useNow'
 const HOURS_24 = 24 * 60 * 60 * 1000
 const SPEEDS = [1, 5, 10, 30, 60]
 
-function formatTime(ts: number): string {
-  const d = new Date(ts)
-  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-}
-
 function formatTimeDetailed(ts: number): string {
   const d = new Date(ts)
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
@@ -98,7 +93,7 @@ export function DroneTimeline({ positionCount, timeRange }: DroneTimelineProps) 
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-0 left-0 right-0 z-40 h-14 flex items-center gap-3 px-4 border-t border-hud-purple/20 bg-hud-panel/90 backdrop-blur-md"
+      className="fixed bottom-16 left-80 right-80 z-40 h-12 flex items-center gap-3 px-4 rounded-lg border border-hud-purple/20 bg-hud-panel/90 backdrop-blur-md"
     >
       {/* History / Live toggle */}
       {isHistory ? (
@@ -205,14 +200,6 @@ export function DroneTimeline({ positionCount, timeRange }: DroneTimelineProps) 
           )}
         </div>
 
-        {/* Hour labels */}
-        <div className="flex justify-between">
-          {ticks.map(h => (
-            <span key={h} className="font-mono text-[7px] text-hud-dim/40">
-              {formatTime(rangeStart + h * 60 * 60 * 1000)}
-            </span>
-          ))}
-        </div>
       </div>
     </motion.div>
   )
