@@ -1,5 +1,6 @@
 // server/droneDb.ts — SQLite-backed drone position history (7-day retention)
 import Database from 'better-sqlite3'
+import fs from 'fs'
 import path from 'path'
 
 const isProd = process.env.NODE_ENV === 'production'
@@ -7,6 +8,7 @@ const dbPath = isProd
   ? path.join(process.env.HOME ?? '/home', 'endurion-drone-history.db')
   : path.join(process.cwd(), 'data', 'drone-history.db')
 
+fs.mkdirSync(path.dirname(dbPath), { recursive: true })
 const db = new Database(dbPath)
 
 // WAL mode for concurrent reads during writes
