@@ -1,9 +1,9 @@
 // src/views/space/SpaceLayer.tsx
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useMemo } from 'react'
 import { Marker, Source, Layer, useMap } from 'react-map-gl/mapbox'
-import type { CircleLayerSpecification, MapMouseEvent } from 'mapbox-gl'
+import type { CircleLayerSpecification, LineLayerSpecification, MapMouseEvent } from 'mapbox-gl'
 import { useHUDStore } from '../../store'
-import { useSatellites } from './useSatellites'
+import { useSatellites, computeOrbitTrack } from './useSatellites'
 import type { Satellite } from '../../types'
 
 const CIRCLE_LAYER: CircleLayerSpecification = {
@@ -30,6 +30,24 @@ const HIT_LAYER: CircleLayerSpecification = {
     'circle-opacity': 0,
     'circle-stroke-width': 0,
   },
+}
+
+const ORBIT_TRACK_LAYER: LineLayerSpecification = {
+  id: 'orbit-track',
+  type: 'line',
+  source: 'orbit-track',
+  paint: {
+    'line-color': '#00d4ff',
+    'line-width': 1.5,
+    'line-opacity': 0.6,
+    'line-dasharray': [4, 3],
+  },
+}
+
+const EMPTY_TRACK: GeoJSON.Feature<GeoJSON.MultiLineString> = {
+  type: 'Feature',
+  properties: {},
+  geometry: { type: 'MultiLineString', coordinates: [] },
 }
 
 function ISSMarker({ sat }: { sat: Satellite }) {
@@ -62,9 +80,19 @@ function ISSMarker({ sat }: { sat: Satellite }) {
 
 export function SpaceLayer() {
   const { current: map } = useMap()
-  const { iss, geojson, loading, usingMockData } = useSatellites()
+  const { iss, geojson, loading, usingMockData, satrecEntries } = useSatellites()
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
+  const selectedEntity = useHUDStore((s) => s.selectedEntity)
+
+  // Compute orbit track for the selected satellite
+  const orbitTrack = useMemo(() => {
+    if (!selectedEntity || selectedEntity.type !== 'satellite') return EMPTY_TRACK
+    const sat = selectedEntity.data as Satellite
+    const entry = satrecEntries.find(e => e.id === sat.id)
+    if (!entry) return EMPTY_TRACK
+    return computeOrbitTrack(entry.satrec) ?? EMPTY_TRACK
+  }, [selectedEntity, satrecEntries])
 
   const handleClick = useCallback((e: MapMouseEvent) => {
     if (!map) return
@@ -129,6 +157,11 @@ export function SpaceLayer() {
       </Source>
 
       {iss && <ISSMarker sat={iss} />}
+
+      {/* Orbit track for selected satellite */}
+      <Source id="orbit-track" type="geojson" data={orbitTrack}>
+        <Layer {...ORBIT_TRACK_LAYER} />
+      </Source>
     </>
   )
 }
