@@ -181,6 +181,13 @@ export function useSatellites(enabled = true): UseSatellitesReturn {
   const [positions, setPositions] = useState<Satellite[]>([])
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
 
+  // Clear stale data when disabled to prevent leaking into other views
+  useEffect(() => {
+    if (!enabled) {
+      setPositions([])
+    }
+  }, [enabled])
+
   // Fetch and parse TLEs only when enabled
   useEffect(() => {
     if (!enabled) return
