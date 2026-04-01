@@ -31,16 +31,41 @@ const byImo = new Map<number, IUURecord>()
 const byName = new Map<string, IUURecord>()
 const byCallSign = new Map<string, IUURecord>()
 
+function collectReasons(row: any): string {
+  // Reason fields are spread across Reason_7, Reason_11, Reason_12, etc.
+  const reasons: string[] = []
+  for (const key of Object.keys(row)) {
+    if (key.startsWith('Reason') && row[key]) {
+      const val = String(row[key]).trim()
+      if (val && val !== 'Cross-listing') reasons.push(val)
+    }
+  }
+  // Deduplicate
+  return [...new Set(reasons)].join(' | ') || 'Cross-listing'
+}
+
+function collectListingAuthorities(row: any): string {
+  // RFMO columns contain date ranges when listed (e.g. "2023-10-11 - ")
+  const rfmos: string[] = []
+  const rfmoKeys = ['NAFO', 'NEAFC', 'NPFC', 'SIOFA', 'CCAMLR', 'ICCAT', 'IATTC', 'IOTC', 'WCPFC', 'SPRFMO', 'GFCM', 'SEAFO', 'CCSBT']
+  for (const key of rfmoKeys) {
+    if (row[key] && String(row[key]).trim()) rfmos.push(key)
+  }
+  return rfmos.join(', ') || String(row.RFMOName ?? '').trim() || ''
+}
+
 function toRecord(row: any): IUURecord {
+  const mmsiRaw = row.mmsi ?? row.MMSI ?? 0
+  const imoRaw = row.imo ?? row.IMO ?? 0
   return {
-    mmsi: row.mmsi ?? row.MMSI ?? 0,
-    imo: row.imo ?? row.IMO ?? 0,
-    name: String(row.name ?? row.Name ?? row['Vessel Name'] ?? '').trim(),
-    callSign: String(row.call_sign ?? row.callSign ?? row['Call Sign'] ?? '').trim(),
+    mmsi: typeof mmsiRaw === 'number' ? mmsiRaw : parseInt(String(mmsiRaw), 10) || 0,
+    imo: typeof imoRaw === 'number' ? imoRaw : parseInt(String(imoRaw), 10) || 0,
+    name: String(row.name ?? row.Name ?? '').trim(),
+    callSign: String(row.call_sign ?? row.callSign ?? row.IRCS ?? '').trim(),
     flag: String(row.flag ?? row.Flag ?? '').trim(),
-    listedDate: String(row.listed_date ?? row.listedDate ?? row['Listed Date'] ?? '').trim(),
-    listingAuthority: String(row.listing_authority ?? row.listingAuthority ?? row['Listed by'] ?? '').trim(),
-    reason: String(row.reason ?? row.Reason ?? '').trim(),
+    listedDate: String(row.listed_date ?? row.listedDate ?? '').trim(),
+    listingAuthority: row.listing_authority ?? row.listingAuthority ?? collectListingAuthorities(row),
+    reason: row.reason ?? row.Reason ?? collectReasons(row),
   }
 }
 
