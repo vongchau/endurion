@@ -305,7 +305,7 @@ export function EventFeedPanel() {
         ...liveIncidents
           .filter((i) => globalLayers.has(incidentToLayer(i)))
           .map(i => ({
-            id: i.id,
+            id: `gl-${i.id}`,
             label: i.country,
             sublabel: i.type,
             severity: i.severity,
@@ -316,7 +316,7 @@ export function EventFeedPanel() {
           })),
         ...(globalLayers.has('military')
           ? liveFlights.map(f => ({
-              id: f.id,
+              id: `mil-${f.id}`,
               label: f.callsign,
               sublabel: f.country,
               severity: 'medium' as const,
@@ -328,7 +328,7 @@ export function EventFeedPanel() {
           : []),
         ...(globalLayers.has('maritime')
           ? disruptions.map((d) => ({
-              id: d.id,
+              id: `mar-${d.id}`,
               label: d.name,
               sublabel: d.description,
               severity: (d.severity === 'high' ? 'high'
@@ -346,7 +346,7 @@ export function EventFeedPanel() {
                 critical: 'critical', high: 'high', medium: 'medium', low: 'low',
               }
               return {
-                id: a.id,
+                id: `rss-${a.id}`,
                 label: a.title,
                 sublabel: a.source,
                 severity: priorityToSeverity[a.priority],
@@ -379,7 +379,7 @@ export function EventFeedPanel() {
     ? cyberArticles.map(a => {
         const actorTarget = [a.sourceActor, a.target].filter(Boolean).join(' → ') || a.source
         return {
-          id: a.id,
+          id: `cyber-${a.id}`,
           label: a.title,
           sublabel: actorTarget,
           severity: (a.severity === 'critical' ? 'critical' : a.severity === 'high' ? 'high' : a.severity === 'medium' ? 'medium' : 'low') as Severity,
@@ -419,12 +419,12 @@ export function EventFeedPanel() {
     ? tabFilteredCyber.filter(item => item.mitreTactics.includes(mitreTacticFilter))
     : tabFilteredCyber
 
-  const items = activeView === 'global'
+  const items = useMemo(() => activeView === 'global'
     ? filteredGlobal
     : activeView === 'city'
     ? [
         ...drones.map(d => ({
-          id: d.id,
+          id: `city-${d.id}`,
           label: d.sensorId,
           sublabel: d.state === 'airborne' ? `${Math.round(d.altitude)}m · ${d.speed.toFixed(1)} m/s` : d.state.toUpperCase(),
           severity: (d.state === 'airborne' ? (d.speed > 20 ? 'high' : 'medium') : 'nominal') as Severity,
@@ -509,7 +509,7 @@ export function EventFeedPanel() {
     : activeView === 'space'
     ? [
         ...swAlerts.slice(0, 5).map(a => ({
-          id: a.id,
+          id: `sw-${a.id}`,
           label: a.title,
           sublabel: a.category.replace('_', ' ').toUpperCase(),
           severity: (a.severity === 'alert' ? 'critical' : a.severity === 'warning' ? 'high' : 'medium') as Severity,
@@ -521,7 +521,7 @@ export function EventFeedPanel() {
           .sort((a, b) => b.altitude - a.altitude)
           .slice(0, 50)
           .map(s => ({
-            id: s.id,
+            id: `sat-${s.id}`,
             label: s.name,
             sublabel: `${s.altitude} km`,
             severity: (s.type === 'iss' ? 'high' : 'nominal') as Severity,
@@ -535,6 +535,7 @@ export function EventFeedPanel() {
           })),
       ]
     : []
+  , [activeView, filteredGlobal, drones, trafficData, weatherData, crimeData, aircraftData, powerData, filteredCyber, swAlerts, satellites, setSelectedEntity, setPanelVisible, now])
 
   return (
     <AnimatePresence>

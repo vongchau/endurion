@@ -230,8 +230,11 @@ export function useSatellites(enabled = true): UseSatellitesReturn {
     return () => clearInterval(intervalRef.current)
   }, [entries, enabled])
 
-  const iss = positions.find(s => s.type === 'iss') ?? null
-  const geojson = buildGeoJSON(positions)
+  // Gate all return values on `enabled` — prevents stale data from leaking into other views
+  // even during the render gap before the cleanup effect fires
+  const activeSats = enabled ? positions : []
+  const iss = enabled ? (positions.find(s => s.type === 'iss') ?? null) : null
+  const geojson = buildGeoJSON(activeSats)
 
-  return { satellites: positions, iss, geojson, loading, usingMockData, satrecEntries: entries }
+  return { satellites: activeSats, iss, geojson, loading, usingMockData, satrecEntries: enabled ? entries : [] }
 }
