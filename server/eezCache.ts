@@ -55,7 +55,7 @@ export function findEEZsContainingPoint(lat: number, lng: number): EEZHit[] {
     const geom = feature.geometry as GeoJSON.MultiPolygon | GeoJSON.Polygon
     if (pointInMultiPolygon(lat, lng, geom)) {
       hits.push({
-        name: (feature.properties?.geoname ?? feature.properties?.preferredGazetteerName ?? 'Unknown EEZ') as string,
+        name: (feature.properties?.geoname ?? feature.properties?.geoname_en ?? feature.properties?.sovereign1 ?? 'Unknown EEZ') as string,
         mrgid: (feature.properties?.mrgid ?? 0) as number,
       })
     }
@@ -67,7 +67,33 @@ export function getEEZFeatureCollection(): GeoJSON.FeatureCollection {
   return featureCollection ?? { type: 'FeatureCollection', features: [] }
 }
 
-async function fetchEEZRecords(): Promise<EEZRecord[]> {
+/** Fetch all EEZ polygons directly from the WFS endpoint in a single request.
+ *  Falls back to paginated gazetteer + individual WFS if bulk fetch fails. */
+async function buildCache(): Promise<GeoJSON.FeatureCollection> {
+  // Strategy 1: Single WFS request for all EEZs (fast, ~30-60s)
+  try {
+    console.log('[eezCache] fetching all EEZ polygons from WFS (bulk)...')
+    const url = `${WFS_BASE}?service=WFS&version=1.0.0&request=GetFeature` +
+      `&typeName=MarineRegions:eez&outputFormat=application/json`
+    const res = await fetch(url, { signal: AbortSignal.timeout(120_000) })
+    if (res.ok) {
+      const fc = await res.json() as GeoJSON.FeatureCollection
+      // Normalize property names for consistent access
+      for (const f of fc.features) {
+        if (f.properties) {
+          f.properties.geoname = f.properties.geoname ?? f.properties.geoname_en ?? f.properties.sovereign1 ?? 'Unknown EEZ'
+          f.properties.mrgid = f.properties.mrgid ?? 0
+        }
+      }
+      console.log(`[eezCache] fetched ${fc.features.length} EEZ polygons (bulk WFS)`)
+      return fc
+    }
+    console.warn(`[eezCache] bulk WFS returned ${res.status}, trying paginated fallback...`)
+  } catch (e) {
+    console.warn(`[eezCache] bulk WFS failed: ${e instanceof Error ? e.message : e}, trying paginated fallback...`)
+  }
+
+  // Strategy 2: Paginated gazetteer + individual WFS (slow fallback)
   const all: EEZRecord[] = []
   let offset = 0
   while (true) {
@@ -81,43 +107,30 @@ async function fetchEEZRecords(): Promise<EEZRecord[]> {
     offset += PAGE_SIZE
     await new Promise(r => setTimeout(r, 500))
   }
-  console.log(`[eezCache] fetched ${all.length} EEZ records`)
-  return all
-}
+  console.log(`[eezCache] fetched ${all.length} EEZ records, downloading geometries...`)
 
-async function fetchEEZGeometry(mrgid: number): Promise<GeoJSON.Feature | null> {
-  const url = `${WFS_BASE}?service=WFS&version=1.0.0&request=GetFeature` +
-    `&typeName=MarineRegions:eez&outputFormat=application/json` +
-    `&CQL_FILTER=mrgid=${mrgid}`
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(30_000) })
-    if (!res.ok) return null
-    const fc = await res.json() as GeoJSON.FeatureCollection
-    return fc.features[0] ?? null
-  } catch {
-    return null
-  }
-}
-
-async function buildCache(): Promise<GeoJSON.FeatureCollection> {
-  const records = await fetchEEZRecords()
   const features: GeoJSON.Feature[] = []
-  for (let i = 0; i < records.length; i++) {
-    const rec = records[i]
-    console.log(`[eezCache] fetching geometry ${i + 1}/${records.length}: ${rec.preferredGazetteerName}`)
-    const feature = await fetchEEZGeometry(rec.MRGID)
-    if (feature) {
-      feature.properties = {
-        ...feature.properties,
-        mrgid: rec.MRGID,
-        geoname: rec.preferredGazetteerName,
+  for (let i = 0; i < all.length; i++) {
+    const rec = all[i]
+    console.log(`[eezCache] geometry ${i + 1}/${all.length}: ${rec.preferredGazetteerName}`)
+    const gUrl = `${WFS_BASE}?service=WFS&version=1.0.0&request=GetFeature` +
+      `&typeName=MarineRegions:eez&outputFormat=application/json` +
+      `&CQL_FILTER=mrgid=${rec.MRGID}`
+    try {
+      const res = await fetch(gUrl, { signal: AbortSignal.timeout(30_000) })
+      if (!res.ok) continue
+      const fc = await res.json() as GeoJSON.FeatureCollection
+      const feature = fc.features[0]
+      if (feature) {
+        feature.properties = { ...feature.properties, mrgid: rec.MRGID, geoname: rec.preferredGazetteerName }
+        features.push(feature)
       }
-      features.push(feature)
-    }
+    } catch { /* skip */ }
     await new Promise(r => setTimeout(r, 1000))
   }
+
   const fc: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features }
-  console.log(`[eezCache] built ${features.length} EEZ polygons`)
+  console.log(`[eezCache] built ${features.length} EEZ polygons (paginated)`)
   return fc
 }
 
