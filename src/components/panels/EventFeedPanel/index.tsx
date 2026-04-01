@@ -247,6 +247,7 @@ const NEWS_CATEGORY_TO_FEED_TYPE: Record<string, FeedType> = {
 export function EventFeedPanel() {
   const panels = useHUDStore((s) => s.panels)
   const activeView = useHUDStore((s) => s.activeView)
+  if (activeView === 'maritime') return null
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
   const [activeFeedTab, setActiveFeedTab] = useState<FeedType>('all')
