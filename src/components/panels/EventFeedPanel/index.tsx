@@ -20,6 +20,7 @@ import { useChokepoints } from '../../../hooks/useChokepoints'
 import { useNews } from '../../../hooks/useNews'
 import { useCyberNews } from '../../../hooks/useCyberNews'
 import { useCampaigns } from '../../../hooks/useCyberAggregations'
+import { useDroneHistory } from '../../../hooks/useDroneHistory'
 import { useNow, formatTimeAgo } from '../../../hooks/useNow'
 import type { NewsPriority } from '../../../types'
 
@@ -262,8 +263,17 @@ export function EventFeedPanel() {
 
   const cityLayers = useHUDStore((s) => s.cityLayers)
   const mapBounds  = useHUDStore((s) => s.mapBounds)
+  const dronePlayback = useHUDStore((s) => s.dronePlayback)
+  const dronePlaybackTime = useHUDStore((s) => s.dronePlaybackTime)
   const showUAS    = activeView === 'city' && cityLayers.has('uas')
-  const { drones } = useDrones(showUAS, mapBounds)
+  const isLiveDrones = dronePlayback === 'live'
+  const { drones: liveDrones } = useDrones(showUAS && isLiveDrones, mapBounds)
+  const { getDronesAtTime } = useDroneHistory(showUAS && !isLiveDrones)
+  const historyDrones = useMemo(() => {
+    if (isLiveDrones || !dronePlaybackTime) return []
+    return getDronesAtTime(dronePlaybackTime)
+  }, [isLiveDrones, dronePlaybackTime, getDronesAtTime])
+  const drones = isLiveDrones ? liveDrones : historyDrones
 
   const showTraffic  = activeView === 'city' && cityLayers.has('traffic')
   const showWeather  = activeView === 'city' && cityLayers.has('weather')

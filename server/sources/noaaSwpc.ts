@@ -109,10 +109,12 @@ export async function fetchSpaceWeather(): Promise<SpaceWeather> {
     const raw = await kpRes.value.json() as string[][]
     const last = raw[raw.length - 1]
     if (last) {
+      const kp = parseFloat(last[1])
+      const observed = parseInt(last[2], 10)
       kpIndex = {
         timestamp: last[0],
-        kp: parseFloat(last[1]),
-        observed: parseInt(last[2], 10),
+        kp: Number.isFinite(kp) ? kp : 0,
+        observed: Number.isFinite(observed) ? observed : 0,
       }
     }
   }
