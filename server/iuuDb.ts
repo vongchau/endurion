@@ -1,7 +1,7 @@
 // server/iuuDb.ts — IUU vessel list stored in SQLite with in-memory hash maps
 import Database from 'better-sqlite3'
 import path from 'path'
-import * as XLSX from 'xlsx'
+import XLSX from 'xlsx'
 import type { IUURecord } from '../src/types'
 
 const dbPath = path.join(process.cwd(), 'data', 'iuu-vessels.db')
