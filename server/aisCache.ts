@@ -286,6 +286,10 @@ export function getAllVessels(): AISVessel[] {
     .slice(0, 5_000)
 }
 
+export function getVesselByMmsi(mmsi: number): AISVessel | undefined {
+  return vesselCache.get(mmsi)
+}
+
 export function getVesselsInBounds(
   minLng: number, minLat: number, maxLng: number, maxLat: number,
 ): AISVessel[] {
