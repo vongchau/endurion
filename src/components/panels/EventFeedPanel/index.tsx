@@ -247,7 +247,6 @@ const NEWS_CATEGORY_TO_FEED_TYPE: Record<string, FeedType> = {
 export function EventFeedPanel() {
   const panels = useHUDStore((s) => s.panels)
   const activeView = useHUDStore((s) => s.activeView)
-  if (activeView === 'maritime') return null
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
   const [activeFeedTab, setActiveFeedTab] = useState<FeedType>('all')
@@ -537,6 +536,9 @@ export function EventFeedPanel() {
       ]
     : []
   , [activeView, filteredGlobal, drones, trafficData, weatherData, crimeData, aircraftData, powerData, filteredCyber, swAlerts, satellites, setSelectedEntity, setPanelVisible, now])
+
+  // Maritime view has its own dedicated feed panel
+  if (activeView === 'maritime') return null
 
   return (
     <AnimatePresence>
