@@ -15,6 +15,7 @@ export function useKeyboardShortcuts() {
         case '2': setActiveView('city'); break
         case '3': setActiveView('cyber'); break
         case '4': setActiveView('space'); break
+        case '5': setActiveView('maritime'); break
       }
     }
 

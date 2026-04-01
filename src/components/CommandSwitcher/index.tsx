@@ -8,6 +8,7 @@ const VIEWS: { id: ViewMode; label: string; key: string }[] = [
   { id: 'city', label: 'CITY', key: '2' },
   { id: 'cyber', label: 'CYBER', key: '3' },
   { id: 'space', label: 'SPACE', key: '4' },
+  { id: 'maritime', label: 'MARITIME', key: '5' },
 ]
 
 export function CommandSwitcher() {
