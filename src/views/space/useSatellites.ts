@@ -12,7 +12,7 @@ const MOCK_SATELLITES: Satellite[] = [
   { id: 'mock-4', name: 'STARLINK-3100', lat: -45.0, lng: 150.0, altitude: 545, velocity: 7.59, inclination: 53.0, type: 'starlink' },
 ]
 
-interface SatrecEntry {
+export interface SatrecEntry {
   satrec: satellite.SatRec
   name: string
   id: string
@@ -87,6 +87,56 @@ function computePositions(entries: SatrecEntry[]): Satellite[] {
   return results
 }
 
+/** Propagate a satrec ±45 min to produce an orbit track.
+ *  Returns a MultiLineString split at antimeridian crossings. */
+export function computeOrbitTrack(
+  satrec: satellite.SatRec,
+  halfWindowMin = 45,
+  stepMin = 1,
+): GeoJSON.Feature<GeoJSON.MultiLineString> | null {
+  const now = new Date()
+  const points: [number, number][] = []
+
+  for (let offset = -halfWindowMin; offset <= halfWindowMin; offset += stepMin) {
+    const t = new Date(now.getTime() + offset * 60_000)
+    const gmst = satellite.gstime(t)
+    try {
+      const pv = satellite.propagate(satrec, t)
+      if (!pv || !pv.position || typeof pv.position === 'boolean') continue
+      const pos = pv.position as satellite.EciVec3<number>
+      const geo = satellite.eciToGeodetic(pos, gmst)
+      const lat = satellite.degreesLat(geo.latitude)
+      const lng = satellite.degreesLong(geo.longitude)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
+      points.push([lng, lat])
+    } catch {
+      // skip propagation failure
+    }
+  }
+
+  if (points.length < 2) return null
+
+  // Split at antimeridian crossings (jump > 180°)
+  const segments: [number, number][][] = [[points[0]]]
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1][0]
+    const curr = points[i][0]
+    if (Math.abs(curr - prev) > 180) {
+      segments.push([])
+    }
+    segments[segments.length - 1].push(points[i])
+  }
+
+  return {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'MultiLineString',
+      coordinates: segments.filter(s => s.length >= 2),
+    },
+  }
+}
+
 export function buildGeoJSON(satellites: Satellite[]) {
   return {
     type: 'FeatureCollection' as const,
@@ -120,6 +170,8 @@ interface UseSatellitesReturn {
   geojson: ReturnType<typeof buildGeoJSON>
   loading: boolean
   usingMockData: boolean
+  /** Parsed satrec entries — use with computeOrbitTrack() */
+  satrecEntries: SatrecEntry[]
 }
 
 export function useSatellites(enabled = true): UseSatellitesReturn {
@@ -174,5 +226,5 @@ export function useSatellites(enabled = true): UseSatellitesReturn {
   const iss = positions.find(s => s.type === 'iss') ?? null
   const geojson = buildGeoJSON(positions)
 
-  return { satellites: positions, iss, geojson, loading, usingMockData }
+  return { satellites: positions, iss, geojson, loading, usingMockData, satrecEntries: entries }
 }
