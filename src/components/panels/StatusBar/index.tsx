@@ -10,6 +10,7 @@ const VIEW_LABELS = {
   city: { title: 'URBAN SURVEILLANCE', subtitle: 'CITY OPERATIONS CENTER' },
   cyber: { title: 'CYBER OPERATIONS', subtitle: 'NETWORK THREAT INTELLIGENCE' },
   space: { title: 'ORBITAL SURVEILLANCE', subtitle: 'SPACE DOMAIN AWARENESS' },
+  maritime: { title: 'MARITIME DOMAIN', subtitle: 'IUU VESSEL MONITORING' },
 }
 
 function PulsingDot({ color }: { color: string }) {

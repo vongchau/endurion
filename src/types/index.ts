@@ -1,7 +1,7 @@
 // src/types/index.ts
 import type * as GeoJSON from 'geojson'
 
-export type ViewMode = 'global' | 'city' | 'cyber' | 'space'
+export type ViewMode = 'global' | 'city' | 'cyber' | 'space' | 'maritime'
 
 export type CityBasemap = 'streets-dark' | 'streets-light' | 'satellite'
 
@@ -68,6 +68,34 @@ export interface AISVessel {
   eta: string
   lengthOverall: number  // dimensionA + dimensionB
   beam: number           // dimensionC + dimensionD
+  timestamp: number
+}
+
+export type IUUConfidence = 'HIGH' | 'MEDIUM' | 'LOW'
+
+export interface IUURecord {
+  mmsi: number
+  imo: number
+  name: string
+  callSign: string
+  flag: string
+  listedDate: string
+  listingAuthority: string
+  reason: string
+}
+
+export interface IUUMatch {
+  confidence: IUUConfidence
+  record: IUURecord
+  matchedFields: string[]
+}
+
+export interface IUUAlert {
+  id: string
+  vessel: AISVessel
+  match: IUUMatch
+  eezName: string
+  eezMrgid: number
   timestamp: number
 }
 
@@ -421,8 +449,8 @@ export interface CyberClusterData {
 }
 
 export interface Entity {
-  type: 'incident' | 'node' | 'satellite' | 'vessel' | 'drone' | 'news' | 'cyberNews' | 'newsCluster' | 'actorProfile' | 'edgeDetail' | 'cyberCluster' | 'traffic' | 'weatherAlert' | 'crime' | 'aircraft' | 'powerOutage'
-  data: GlobalIncident | CyberNode | Satellite | AISVessel | DroneFlight | NewsArticle | CyberNewsArticle | NewsArticle[] | ActorProfile | CyberNewsArticle[] | CyberClusterData | TrafficIncident | WeatherAlert | CrimeIncident | LowAltAircraft | PowerOutage
+  type: 'incident' | 'node' | 'satellite' | 'vessel' | 'drone' | 'news' | 'cyberNews' | 'newsCluster' | 'actorProfile' | 'edgeDetail' | 'cyberCluster' | 'traffic' | 'weatherAlert' | 'crime' | 'aircraft' | 'powerOutage' | 'iuuVessel'
+  data: GlobalIncident | CyberNode | Satellite | AISVessel | DroneFlight | NewsArticle | CyberNewsArticle | NewsArticle[] | ActorProfile | CyberNewsArticle[] | CyberClusterData | TrafficIncident | WeatherAlert | CrimeIncident | LowAltAircraft | PowerOutage | IUUAlert
 }
 
 export interface PanelState {

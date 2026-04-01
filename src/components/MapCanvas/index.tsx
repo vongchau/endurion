@@ -8,6 +8,7 @@ import { GlobalMarkers } from '../../views/global/GlobalMarkers'
 import { CityMarkers } from '../../views/city/CityMarkers'
 import { CyberLayer } from '../../views/cyber/CyberLayer'
 import { SpaceLayer } from '../../views/space/SpaceLayer'
+import { MaritimeLayer } from '../../views/maritime/MaritimeLayer'
 import { mapRef } from '../../mapRef'
 import { droneTrailsRef } from '../../droneTrails'
 
@@ -32,6 +33,10 @@ const VIEW_CONFIGS = {
   space: {
     mapStyle: 'mapbox://styles/mapbox/dark-v11',
     initialViewState: { longitude: 10, latitude: 20, zoom: 1.8 },
+  },
+  maritime: {
+    mapStyle: 'mapbox://styles/mapbox/dark-v11',
+    initialViewState: { longitude: 10, latitude: 20, zoom: 2.5 },
   },
 }
 
@@ -293,6 +298,7 @@ export function MapCanvas() {
         {activeView === 'city' && <CityMarkers />}
         {activeView === 'cyber' && <CyberLayer />}
         {activeView === 'space' && <SpaceLayer />}
+        {activeView === 'maritime' && <MaritimeLayer />}
       </Map>
     </div>
   )

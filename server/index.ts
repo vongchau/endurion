@@ -1,4 +1,5 @@
 // server/index.ts
+import path from 'path'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
@@ -8,6 +9,9 @@ import { deduplicateIncidents } from './dedup'
 import { startPoller } from './poller'
 import { getDensityZones, getMilitaryCandidates, getChokepoints, getDisruptions, getStats, getAllVessels, getVesselsInBounds, getSnapshot, getVesselIntel } from './aisCache'
 import { startAis, isConnected as aisConnected } from './ais'
+import { initIUU } from './iuuDb'
+import { initEEZ, getEEZFeatureCollection } from './eezCache'
+import { getIUUAlerts, getFlaggedVessels, startIUUMatcher } from './iuuMatcher'
 import { getDrones, setDroneBbox, startDronePoller, droneEvents } from './droneCache'
 import { getHistory, getDroneHistory } from './droneDb'
 import { getTrafficIncidents, setTrafficBbox, startTrafficPoller } from './trafficCache'
@@ -58,6 +62,12 @@ app.get('/api/vessels/:mmsi/intel', (c) => {
   if (isNaN(mmsi)) return c.json({ error: 'Invalid MMSI' }, 400)
   return c.json(getVesselIntel(mmsi))
 })
+
+// Maritime / IUU
+app.get('/api/maritime/eez', (c) => c.json(getEEZFeatureCollection()))
+app.get('/api/maritime/iuu/alerts', (c) => c.json(getIUUAlerts()))
+app.get('/api/maritime/iuu/vessels', (c) => c.json(getFlaggedVessels()))
+app.get('/api/maritime/vessels', (c) => c.json(getAllVessels()))
 
 app.get('/api/drones/stream', (c) => {
   const minLng = parseFloat(c.req.query('minLng') ?? '')
@@ -284,6 +294,11 @@ serve({ fetch: app.fetch, port }, () => {
 startPoller().catch((e) => console.error('[poller] startup failed:', e))
 startAis()
 startDronePoller()
+
+// IUU / Maritime
+initIUU(path.join(process.cwd(), 'IUUList-20260401.xls'))
+initEEZ().catch((e) => console.error('[eezCache] init failed:', e))
+startIUUMatcher()
 startNewsPoller().catch((e) => console.error('[news] startup failed:', e))
 startCyberNewsPoller().catch((e) => console.error('[cyberNews] startup failed:', e))
 startTrafficPoller()

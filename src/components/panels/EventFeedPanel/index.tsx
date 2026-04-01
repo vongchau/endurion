@@ -537,6 +537,9 @@ export function EventFeedPanel() {
     : []
   , [activeView, filteredGlobal, drones, trafficData, weatherData, crimeData, aircraftData, powerData, filteredCyber, swAlerts, satellites, setSelectedEntity, setPanelVisible, now])
 
+  // Maritime view has its own dedicated feed panel
+  if (activeView === 'maritime') return null
+
   return (
     <AnimatePresence>
       {panels.eventFeed && (

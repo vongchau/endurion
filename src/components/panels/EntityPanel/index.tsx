@@ -5,10 +5,11 @@ import { useHUDStore } from '../../../store'
 import { useVesselIntel } from '../../../hooks/useVesselIntel'
 import { useNow, formatTimeAgo } from '../../../hooks/useNow'
 import { IocExport } from '../../IocExport'
-import type { GlobalIncident, CyberNode, Satellite, AISVessel, DroneFlight, NewsArticle, CyberNewsArticle, Severity, NewsPriority, ActorProfile, CyberClusterData, TrafficIncident, WeatherAlert, CrimeIncident, LowAltAircraft, PowerOutage } from '../../../types'
+import type { GlobalIncident, CyberNode, Satellite, AISVessel, DroneFlight, NewsArticle, CyberNewsArticle, Severity, NewsPriority, ActorProfile, CyberClusterData, TrafficIncident, WeatherAlert, CrimeIncident, LowAltAircraft, PowerOutage, IUUAlert } from '../../../types'
 import { EnrichedCveSection } from '../CveDetail'
 import { ActorProfileDetail } from '../ActorProfilePanel'
 import { DroneFlightChart } from '../DroneFlightChart'
+import { IUUVesselDetail } from '../../../views/maritime/IUUVesselDetail'
 
 const SEVERITY_BG: Record<Severity, string> = {
   critical: 'bg-hud-red/10 text-hud-red border-hud-red/30',
@@ -891,6 +892,7 @@ export function EntityPanel() {
               {selectedEntity.type === 'crime' && <CrimeDetail data={selectedEntity.data as CrimeIncident} />}
               {selectedEntity.type === 'aircraft' && <AircraftDetail data={selectedEntity.data as LowAltAircraft} />}
               {selectedEntity.type === 'powerOutage' && <PowerDetail data={selectedEntity.data as PowerOutage} />}
+              {selectedEntity.type === 'iuuVessel' && <IUUVesselDetail data={selectedEntity.data as IUUAlert} />}
             </div>
           )}
         </motion.div>

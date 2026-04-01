@@ -1,5 +1,6 @@
 // server/ais.ts
 import { processVesselMessage, cleanupStaleVessels } from './aisCache'
+import { checkVesselIdentity } from './iuuMatcher'
 
 const WS_URL         = 'wss://stream.aisstream.io/v0/stream'
 const RECONNECT_MS   = 10_000
@@ -79,6 +80,9 @@ function connect(apiKey: string): void {
         mmsi, lat, lng, shipType, name, speed, course, heading,
         destination, callSign, imo, draught, eta, dimA, dimB, dimC, dimD,
       )
+
+      // IUU identity check (O(1) hash lookup)
+      checkVesselIdentity(mmsi, imo ?? 0, name, callSign ?? '')
     } catch { /* ignore malformed AIS messages */ }
   })
 
