@@ -43,11 +43,22 @@ interface HUDStore {
   watchlist: Set<string>  // watched actor names, CVE IDs, malware names
   addToWatchlist: (term: string) => void
   removeFromWatchlist: (term: string) => void
+  // Space overpass interaction
+  selectedStationId: string | null
+  setSelectedStationId: (id: string | null) => void
+  hoveredOverpassIdx: number | null
+  setHoveredOverpassIdx: (idx: number | null) => void
 }
 
 export const useHUDStore = create<HUDStore>((set) => ({
   activeView: 'global',
-  setActiveView: (view) => set({ activeView: view, selectedEntity: null }),
+  setActiveView: (view) => set((state) => ({
+    activeView: view,
+    selectedEntity: null,
+    panels: { ...state.panels, entity: false },
+    selectedStationId: null,
+    hoveredOverpassIdx: null,
+  })),
   panels: {
     eventFeed: true,
     entity: false,
@@ -122,6 +133,12 @@ export const useHUDStore = create<HUDStore>((set) => ({
       next.delete(term.toLowerCase())
       return { watchlist: next }
     }),
+  selectedStationId: null,
+  setSelectedStationId: (id) => set((state) => ({
+    selectedStationId: state.selectedStationId === id ? null : id,
+  })),
+  hoveredOverpassIdx: null,
+  setHoveredOverpassIdx: (idx) => set({ hoveredOverpassIdx: idx }),
 }))
 
 // Persist watchlist to localStorage
