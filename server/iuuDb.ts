@@ -117,6 +117,10 @@ export function loadFromDb(): number {
 export function initIUU(xlsPath: string): void {
   const { cnt } = countStmt.get() as { cnt: number }
   if (cnt === 0) {
+    if (!fs.existsSync(xlsPath)) {
+      console.warn(`[iuuDb] XLS not found at ${xlsPath} — IUU matching disabled until file is provided`)
+      return
+    }
     importFromXls(xlsPath)
   } else {
     loadFromDb()
