@@ -14,6 +14,7 @@ import { MitreHeatmap } from './views/cyber/MitreHeatmap'
 import { DroneTimelineWrapper } from './views/city/DroneTimelineWrapper'
 import { CityToolkit } from './views/city/CityToolkit'
 import { SpaceOverpassWrapper } from './views/space/SpaceOverpassWrapper'
+import { MaritimeFeedPanel } from './views/maritime/MaritimeFeedPanel'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useHUDStore } from './store'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
@@ -86,6 +87,7 @@ export default function App() {
         {activeView === 'cyber' && <MitreHeatmap />}
         {activeView === 'city' && <CityToolkit />}
         {activeView === 'space' && <SpaceOverpassWrapper />}
+        {activeView === 'maritime' && <MaritimeFeedPanel />}
         <DroneTimelineWrapper />
         <CommandSwitcher />
       </div>
