@@ -21,6 +21,58 @@ interface EEZRecord {
 
 let featureCollection: GeoJSON.FeatureCollection | null = null
 
+// --- Geometry simplification to reduce memory ---
+
+/** Round coordinates to N decimal places and decimate points */
+function simplifyRing(ring: number[][], precision = 3, minDistance = 0.01): number[][] {
+  if (ring.length <= 4) return ring.map(c => [round(c[0], precision), round(c[1], precision)])
+
+  const result: number[][] = [ring[0].map(v => round(v, precision))]
+  for (let i = 1; i < ring.length; i++) {
+    const prev = result[result.length - 1]
+    const curr = ring[i]
+    const dx = curr[0] - prev[0]
+    const dy = curr[1] - prev[1]
+    if (dx * dx + dy * dy >= minDistance * minDistance) {
+      result.push([round(curr[0], precision), round(curr[1], precision)])
+    }
+  }
+  // Ensure ring is closed
+  if (result.length > 1) {
+    const first = result[0], last = result[result.length - 1]
+    if (first[0] !== last[0] || first[1] !== last[1]) result.push([...first])
+  }
+  return result
+}
+
+function round(n: number, decimals: number): number {
+  const f = 10 ** decimals
+  return Math.round(n * f) / f
+}
+
+function simplifyGeometry(geom: GeoJSON.Geometry): GeoJSON.Geometry {
+  if (geom.type === 'Polygon') {
+    return { type: 'Polygon', coordinates: geom.coordinates.map(ring => simplifyRing(ring)) }
+  }
+  if (geom.type === 'MultiPolygon') {
+    return {
+      type: 'MultiPolygon',
+      coordinates: geom.coordinates.map(poly => poly.map(ring => simplifyRing(ring))),
+    }
+  }
+  return geom
+}
+
+function simplifyFeatureCollection(fc: GeoJSON.FeatureCollection): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: fc.features.map(f => ({
+      ...f,
+      geometry: simplifyGeometry(f.geometry),
+    })),
+  }
+}
+
 function pointInPolygon(lat: number, lng: number, ring: number[][]): boolean {
   let inside = false
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -135,18 +187,42 @@ async function buildCache(): Promise<GeoJSON.FeatureCollection> {
 }
 
 export async function initEEZ(): Promise<void> {
+  const SIMPLIFIED_PATH = CACHE_PATH.replace('.json', '-simplified.json')
+
+  // Try loading simplified cache first
+  if (fs.existsSync(SIMPLIFIED_PATH)) {
+    try {
+      const raw = fs.readFileSync(SIMPLIFIED_PATH, 'utf-8')
+      featureCollection = JSON.parse(raw) as GeoJSON.FeatureCollection
+      console.log(`[eezCache] loaded ${featureCollection.features.length} EEZs from simplified cache (${(Buffer.byteLength(raw) / 1e6).toFixed(1)}MB)`)
+      return
+    } catch (e) {
+      console.warn('[eezCache] simplified cache corrupt, rebuilding...')
+    }
+  }
+
+  // Load or fetch full-resolution data
+  let fullRes: GeoJSON.FeatureCollection
   if (fs.existsSync(CACHE_PATH)) {
     try {
       const raw = fs.readFileSync(CACHE_PATH, 'utf-8')
-      featureCollection = JSON.parse(raw) as GeoJSON.FeatureCollection
-      console.log(`[eezCache] loaded ${featureCollection.features.length} EEZs from cache`)
-      return
-    } catch (e) {
-      console.warn('[eezCache] cache file corrupt, rebuilding...')
+      fullRes = JSON.parse(raw) as GeoJSON.FeatureCollection
+      console.log(`[eezCache] loaded ${fullRes.features.length} EEZs from full-res cache`)
+    } catch {
+      fullRes = await buildCache()
+      fs.mkdirSync(path.dirname(CACHE_PATH), { recursive: true })
+      fs.writeFileSync(CACHE_PATH, JSON.stringify(fullRes))
     }
+  } else {
+    fullRes = await buildCache()
+    fs.mkdirSync(path.dirname(CACHE_PATH), { recursive: true })
+    fs.writeFileSync(CACHE_PATH, JSON.stringify(fullRes))
+    console.log(`[eezCache] saved full-res cache to ${CACHE_PATH}`)
   }
-  featureCollection = await buildCache()
-  fs.mkdirSync(path.dirname(CACHE_PATH), { recursive: true })
-  fs.writeFileSync(CACHE_PATH, JSON.stringify(featureCollection))
-  console.log(`[eezCache] saved cache to ${CACHE_PATH}`)
+
+  // Simplify and save
+  featureCollection = simplifyFeatureCollection(fullRes)
+  const simplified = JSON.stringify(featureCollection)
+  fs.writeFileSync(SIMPLIFIED_PATH, simplified)
+  console.log(`[eezCache] saved simplified cache (${(Buffer.byteLength(simplified) / 1e6).toFixed(1)}MB) with ${featureCollection.features.length} EEZs`)
 }
