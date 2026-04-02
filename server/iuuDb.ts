@@ -3,7 +3,7 @@ import Database from 'better-sqlite3'
 import fs from 'fs'
 import path from 'path'
 import XLSX from 'xlsx'
-import type { IUURecord } from '../src/types'
+import type { IUURecord, IUUConfidence } from '../src/types'
 
 const dataDir = path.join(process.cwd(), 'data')
 fs.mkdirSync(dataDir, { recursive: true })
@@ -26,6 +26,41 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_iuu_mmsi ON iuu_vessels(mmsi);
   CREATE INDEX IF NOT EXISTS idx_iuu_imo  ON iuu_vessels(imo);
   CREATE INDEX IF NOT EXISTS idx_iuu_name ON iuu_vessels(name);
+`)
+
+// --- IUU match + alert persistence tables ---
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS iuu_matches (
+    mmsi              INTEGER PRIMARY KEY,
+    imo               INTEGER,
+    vessel_name       TEXT,
+    call_sign         TEXT,
+    confidence        TEXT    NOT NULL,
+    matched_fields    TEXT    NOT NULL,
+    iuu_name          TEXT,
+    iuu_flag          TEXT,
+    iuu_authority     TEXT,
+    iuu_reason        TEXT,
+    first_seen        INTEGER NOT NULL,
+    last_seen         INTEGER NOT NULL,
+    last_lat          REAL,
+    last_lng          REAL
+  );
+
+  CREATE TABLE IF NOT EXISTS iuu_eez_alerts (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    mmsi              INTEGER NOT NULL,
+    vessel_name       TEXT,
+    confidence        TEXT    NOT NULL,
+    eez_name          TEXT    NOT NULL,
+    eez_mrgid         INTEGER NOT NULL,
+    lat               REAL,
+    lng               REAL,
+    timestamp         INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_eez_alerts_ts ON iuu_eez_alerts(timestamp);
+  CREATE INDEX IF NOT EXISTS idx_eez_alerts_mmsi ON iuu_eez_alerts(mmsi);
 `)
 
 console.log(`[iuuDb] opened ${dbPath}`)
@@ -141,4 +176,94 @@ export function lookupByCallSign(callSign: string): IUURecord | undefined {
 }
 export function getAllIUURecords(): IUURecord[] {
   return selectAll.all().map(toRecord)
+}
+
+// --- IUU match persistence ---
+
+export interface PersistedMatch {
+  mmsi: number
+  imo: number
+  vesselName: string
+  callSign: string
+  confidence: IUUConfidence
+  matchedFields: string[]
+  iuuName: string
+  iuuFlag: string
+  iuuAuthority: string
+  iuuReason: string
+  firstSeen: number
+  lastSeen: number
+  lastLat: number
+  lastLng: number
+}
+
+const upsertMatch = db.prepare(`
+  INSERT INTO iuu_matches (mmsi, imo, vessel_name, call_sign, confidence, matched_fields,
+    iuu_name, iuu_flag, iuu_authority, iuu_reason, first_seen, last_seen, last_lat, last_lng)
+  VALUES (@mmsi, @imo, @vesselName, @callSign, @confidence, @matchedFields,
+    @iuuName, @iuuFlag, @iuuAuthority, @iuuReason, @firstSeen, @lastSeen, @lastLat, @lastLng)
+  ON CONFLICT(mmsi) DO UPDATE SET
+    imo = @imo, vessel_name = @vesselName, call_sign = @callSign,
+    confidence = @confidence, matched_fields = @matchedFields,
+    last_seen = @lastSeen, last_lat = @lastLat, last_lng = @lastLng
+`)
+
+export function persistMatch(m: PersistedMatch): void {
+  upsertMatch.run({
+    ...m,
+    matchedFields: m.matchedFields.join(','),
+  })
+}
+
+const selectMatches = db.prepare('SELECT * FROM iuu_matches ORDER BY last_seen DESC')
+
+export function loadPersistedMatches(): PersistedMatch[] {
+  const rows = selectMatches.all() as any[]
+  return rows.map(r => ({
+    mmsi: r.mmsi,
+    imo: r.imo,
+    vesselName: r.vessel_name ?? '',
+    callSign: r.call_sign ?? '',
+    confidence: r.confidence as IUUConfidence,
+    matchedFields: (r.matched_fields ?? '').split(',').filter(Boolean),
+    iuuName: r.iuu_name ?? '',
+    iuuFlag: r.iuu_flag ?? '',
+    iuuAuthority: r.iuu_authority ?? '',
+    iuuReason: r.iuu_reason ?? '',
+    firstSeen: r.first_seen,
+    lastSeen: r.last_seen,
+    lastLat: r.last_lat ?? 0,
+    lastLng: r.last_lng ?? 0,
+  }))
+}
+
+// --- EEZ alert persistence ---
+
+const insertAlert = db.prepare(`
+  INSERT INTO iuu_eez_alerts (mmsi, vessel_name, confidence, eez_name, eez_mrgid, lat, lng, timestamp)
+  VALUES (@mmsi, @vesselName, @confidence, @eezName, @eezMrgid, @lat, @lng, @timestamp)
+`)
+
+export function persistEEZAlert(alert: {
+  mmsi: number; vesselName: string; confidence: string;
+  eezName: string; eezMrgid: number; lat: number; lng: number; timestamp: number;
+}): void {
+  insertAlert.run(alert)
+}
+
+const selectRecentAlerts = db.prepare(
+  'SELECT * FROM iuu_eez_alerts ORDER BY timestamp DESC LIMIT 200'
+)
+
+export function loadPersistedAlerts(): any[] {
+  return selectRecentAlerts.all()
+}
+
+// --- Get all known IUU MMSIs (for eviction exemption) ---
+
+const selectMatchMMSIs = db.prepare('SELECT mmsi FROM iuu_matches')
+
+export function getPersistedMatchMMSIs(): Set<number> {
+  const rows = selectMatchMMSIs.all() as { mmsi: number }[]
+  return new Set(rows.map(r => r.mmsi))
 }
