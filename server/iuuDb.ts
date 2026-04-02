@@ -197,12 +197,28 @@ function levenshtein(a: string, b: string): number {
   return dp[n]
 }
 
+// Common maritime tokens that inflate similarity scores between unrelated vessels
+const NOISE_TOKENS = new Set([
+  'fishing', 'vessel', 'boat', 'ship', 'no', 'mv', 'fv', 'sv', 'mt',
+  'the', 'of', 'de', 'el', 'la', 'le', 'al', 'san', 'st',
+  'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x',
+])
+
+function stripNoise(tokens: string[]): string[] {
+  const filtered = tokens.filter(t => !NOISE_TOKENS.has(t) && t.length > 1)
+  // If stripping removes everything, keep originals
+  return filtered.length > 0 ? filtered : tokens
+}
+
 function tokenSimilarity(a: string, b: string): number {
-  const tokensA = a.toLowerCase().split(/[\s\-_.,]+/).filter(Boolean)
-  const tokensB = b.toLowerCase().split(/[\s\-_.,]+/).filter(Boolean)
+  const rawA = a.toLowerCase().split(/[\s\-_.,]+/).filter(Boolean)
+  const rawB = b.toLowerCase().split(/[\s\-_.,]+/).filter(Boolean)
+  const tokensA = stripNoise(rawA)
+  const tokensB = stripNoise(rawB)
   if (tokensA.length === 0 || tokensB.length === 0) return 0
 
   let matchScore = 0
+  let strongMatches = 0 // tokens with >80% similarity
   for (const ta of tokensA) {
     let bestMatch = 0
     for (const tb of tokensB) {
@@ -212,22 +228,30 @@ function tokenSimilarity(a: string, b: string): number {
       const sim = 1 - dist / maxLen
       if (sim > bestMatch) bestMatch = sim
     }
+    if (bestMatch >= 0.8) strongMatches++
     matchScore += bestMatch
   }
 
-  return matchScore / Math.max(tokensA.length, tokensB.length)
+  const overall = matchScore / Math.max(tokensA.length, tokensB.length)
+
+  // Require at least 2 strong token matches for multi-token names
+  if (tokensA.length >= 2 && strongMatches < 2) return 0
+
+  return overall
 }
 
-const FUZZY_THRESHOLD = 0.75
+const FUZZY_THRESHOLD = 0.85
 
 export function fuzzyLookupByName(name: string): { record: IUURecord; similarity: number } | undefined {
-  if (!name || name.length < 3) return undefined
+  if (!name || name.length < 6) return undefined // Skip very short names
   const lower = name.toLowerCase()
 
   let bestRecord: IUURecord | undefined
   let bestSim = 0
 
   for (const [storedName, record] of byName) {
+    // Skip if lengths are wildly different (unlikely to be the same vessel)
+    if (Math.abs(lower.length - storedName.length) > lower.length * 0.4) continue
     const sim = tokenSimilarity(lower, storedName)
     if (sim > bestSim && sim >= FUZZY_THRESHOLD) {
       bestSim = sim
