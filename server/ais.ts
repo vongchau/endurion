@@ -5,9 +5,11 @@ import { checkVesselIdentity } from './iuuMatcher'
 const WS_URL         = 'wss://stream.aisstream.io/v0/stream'
 const RECONNECT_MS   = 10_000
 const CLEANUP_MS     = 5 * 60 * 1000
+const KEEPALIVE_MS   = 30_000  // Ping every 30s to prevent Azure proxy timeout
 
 let ws: WebSocket | null = null
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let keepaliveTimer: ReturnType<typeof setInterval> | null = null
 export let isConnected = false
 
 function connect(apiKey: string): void {
@@ -24,6 +26,14 @@ function connect(apiKey: string): void {
       BoundingBoxes: [[[-90, -180], [90, 180]]],
       FilterMessageTypes: ['PositionReport', 'ShipStaticData', 'StandardClassBPositionReport'],
     }))
+
+    // Keepalive ping to prevent Azure/proxy idle timeout
+    if (keepaliveTimer) clearInterval(keepaliveTimer)
+    keepaliveTimer = setInterval(() => {
+      if (ws && isConnected) {
+        try { ws.send('ping') } catch { /* ignore */ }
+      }
+    }, KEEPALIVE_MS)
   })
 
   ws.addEventListener('message', async (event) => {
@@ -92,6 +102,7 @@ function connect(apiKey: string): void {
 
   ws.addEventListener('close', (e) => {
     isConnected = false
+    if (keepaliveTimer) { clearInterval(keepaliveTimer); keepaliveTimer = null }
     console.log(`[ais] disconnected (code=${e.code}), reconnecting in ${RECONNECT_MS / 1000}s`)
     scheduleReconnect(apiKey)
   })
