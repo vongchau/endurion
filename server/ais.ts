@@ -16,7 +16,13 @@ let firstMessageLogged = false
 export let isConnected = false
 
 function connect(apiKey: string): void {
-  if (ws) { try { ws.close() } catch { /* ignore close errors on reconnect */ } }
+  // Ensure previous connection is fully torn down
+  if (ws) {
+    const old = ws
+    ws = null
+    isConnected = false
+    try { old.close() } catch { /* ignore */ }
+  }
 
   console.log('[ais] connecting to AISStream…')
   ws = new WebSocket(WS_URL)
@@ -24,12 +30,14 @@ function connect(apiKey: string): void {
   ws.addEventListener('open', () => {
     isConnected = true
     firstMessageLogged = false
-    console.log(`[ais] connected — subscribing global coverage (attempt ${reconnectAttempts + 1})`)
-    ws!.send(JSON.stringify({
-      APIKey: apiKey,
+    console.log(`[ais] connected — subscribing (attempt ${reconnectAttempts + 1})`)
+    const sub = {
+      APIKey: apiKey.trim(),
       BoundingBoxes: [[[-90, -180], [90, 180]]],
       FilterMessageTypes: ['PositionReport', 'ShipStaticData', 'StandardClassBPositionReport'],
-    }))
+    }
+    console.log(`[ais] subscription key length: ${apiKey.trim().length}, payload: ${JSON.stringify(sub).length} bytes`)
+    ws!.send(JSON.stringify(sub))
 
     // Keepalive ping to prevent Azure/proxy idle timeout
     if (keepaliveTimer) clearInterval(keepaliveTimer)
