@@ -160,14 +160,18 @@ export function MaritimeLayer() {
   // Clear selection on empty click
   const handleMapClick = useCallback((e: MapMouseEvent) => {
     if (!map) return
-    const hits = map.queryRenderedFeatures(e.point, {
-      layers: ['maritime-vessels-hit', 'eez-fill'],
-    })
+    // Only query layers that currently exist
+    const queryLayers: string[] = []
+    if (showTraffic) queryLayers.push('maritime-vessels-hit')
+    if (showEEZ) queryLayers.push('eez-fill')
+    const hits = queryLayers.length > 0
+      ? map.queryRenderedFeatures(e.point, { layers: queryLayers })
+      : []
     if (hits.length === 0) {
       setSelectedEntity(null)
       setPanelVisible('entity', false)
     }
-  }, [map, setSelectedEntity, setPanelVisible])
+  }, [map, setSelectedEntity, setPanelVisible, showTraffic, showEEZ])
 
   // Cursor
   const handleMouseEnter = useCallback(() => {
@@ -177,19 +181,25 @@ export function MaritimeLayer() {
     if (map) map.getCanvas().style.cursor = ''
   }, [map])
 
+  // General map click (always active)
   useEffect(() => {
     if (!map) return
-    map.on('click', 'maritime-vessels-hit', handleVesselClick)
     map.on('click', handleMapClick)
+    return () => { map.off('click', handleMapClick) }
+  }, [map, handleMapClick])
+
+  // Vessel layer click/hover (only when traffic layer is visible)
+  useEffect(() => {
+    if (!map || !showTraffic) return
+    map.on('click', 'maritime-vessels-hit', handleVesselClick)
     map.on('mouseenter', 'maritime-vessels-hit', handleMouseEnter)
     map.on('mouseleave', 'maritime-vessels-hit', handleMouseLeave)
     return () => {
       map.off('click', 'maritime-vessels-hit', handleVesselClick)
-      map.off('click', handleMapClick)
       map.off('mouseenter', 'maritime-vessels-hit', handleMouseEnter)
       map.off('mouseleave', 'maritime-vessels-hit', handleMouseLeave)
     }
-  }, [map, handleVesselClick, handleMapClick, handleMouseEnter, handleMouseLeave])
+  }, [map, showTraffic, handleVesselClick, handleMouseEnter, handleMouseLeave])
 
   return (
     <>
