@@ -6,11 +6,8 @@ const WS_URL         = 'wss://stream.aisstream.io/v0/stream'
 const BASE_RECONNECT_MS = 10_000
 const MAX_RECONNECT_MS  = 120_000  // Cap at 2 minutes
 const CLEANUP_MS     = 5 * 60 * 1000
-const KEEPALIVE_MS   = 30_000  // Ping every 30s to prevent Azure proxy timeout
-
 let ws: WebSocket | null = null
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
-let keepaliveTimer: ReturnType<typeof setInterval> | null = null
 let reconnectAttempts = 0
 let firstMessageLogged = false
 export let isConnected = false
@@ -39,13 +36,6 @@ function connect(apiKey: string): void {
     console.log(`[ais] subscription key length: ${apiKey.trim().length}, payload: ${JSON.stringify(sub).length} bytes`)
     ws!.send(JSON.stringify(sub))
 
-    // Keepalive ping to prevent Azure/proxy idle timeout
-    if (keepaliveTimer) clearInterval(keepaliveTimer)
-    keepaliveTimer = setInterval(() => {
-      if (ws && isConnected) {
-        try { ws.send('ping') } catch { /* ignore */ }
-      }
-    }, KEEPALIVE_MS)
   })
 
   ws.addEventListener('message', async (event) => {
@@ -124,7 +114,6 @@ function connect(apiKey: string): void {
   ws.addEventListener('close', (e) => {
     console.log(`[ais] close reason: "${e.reason || 'none'}"`)
     isConnected = false
-    if (keepaliveTimer) { clearInterval(keepaliveTimer); keepaliveTimer = null }
     reconnectAttempts++
     const delay = Math.min(BASE_RECONNECT_MS * Math.pow(2, Math.min(reconnectAttempts - 1, 4)), MAX_RECONNECT_MS)
     console.log(`[ais] disconnected (code=${e.code}), reconnecting in ${(delay / 1000).toFixed(0)}s (attempt ${reconnectAttempts})`)
