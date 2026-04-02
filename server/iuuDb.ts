@@ -250,6 +250,8 @@ export function fuzzyLookupByName(name: string): { record: IUURecord; similarity
   let bestSim = 0
 
   for (const [storedName, record] of byName) {
+    // Skip short IUU names — too many false positives (e.g., "ULLA" matches "ELLA", "ULA", etc.)
+    if (storedName.length < 6) continue
     // Skip if lengths are wildly different (unlikely to be the same vessel)
     if (Math.abs(lower.length - storedName.length) > lower.length * 0.4) continue
     const sim = tokenSimilarity(lower, storedName)
