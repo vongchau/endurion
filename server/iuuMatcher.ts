@@ -13,6 +13,7 @@ const MAX_ALERTS = 500
 const SWEEP_INTERVAL_MS = 30_000
 const DWELL_ESCALATION_MINUTES = 120  // 2 hours
 const TRANSSHIPMENT_DISTANCE_KM = 1
+const IN_PORT_SPEED_KN = 1  // Vessels below this speed are likely in port/anchored
 const TRANSSHIPMENT_MIN_DURATION_MS = 30 * 60 * 1000  // 30 minutes
 // Ship types that commonly receive transshipped catch
 const REEFER_TYPES = new Set([70, 71, 72, 73, 74, 75, 76, 77, 78, 79]) // Cargo types
@@ -175,6 +176,10 @@ function sweepEEZ(): void {
     const vessel = getVesselByMmsi(mmsi)
     if (!vessel) continue
 
+    // Skip vessels in port or at anchor (speed < 1 kn)
+    const isInPort = vessel.speed < IN_PORT_SPEED_KN
+    if (isInPort) continue
+
     const eezHits = findEEZsContainingPoint(vessel.lat, vessel.lng)
 
     for (const eez of eezHits) {
@@ -298,6 +303,9 @@ function sweepTransshipment(): void {
 
         const vA = cache.get(mmsiA), vB = cache.get(mmsiB)
         if (!vA || !vB) continue
+
+        // Skip if either vessel is stationary (in port)
+        if (vA.speed < IN_PORT_SPEED_KN || vB.speed < IN_PORT_SPEED_KN) continue
 
         // One should be fishing/IUU, other should be cargo/reefer
         const aIsFishing = isFlaggedA || FISHING_TYPES.has(vA.shipType)
