@@ -40,6 +40,7 @@ let vesselCache        = new Map<number, AISVessel>()
 let vesselHistory      = new Map<number, number[]>()   // mmsi → [timestamps]
 let densityGrid        = new Map<string, DensityCell>() // gridKey → cell
 let candidateStore     = new Map<number, MilitaryCandidate>()
+const protectedMmsis   = new Set<number>()              // IUU-flagged, exempt from eviction
 let messageCount       = 0
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -144,10 +145,11 @@ export function processVesselMessage(
     })
   }
 
-  // Evict oldest when at capacity
+  // Evict oldest when at capacity (skip IUU-protected vessels)
   if (vesselCache.size > MAX_VESSELS) {
     let oldestMmsi = 0, oldestTime = Infinity
     for (const [m, v] of vesselCache) {
+      if (protectedMmsis.has(m)) continue
       if (v.timestamp < oldestTime) { oldestTime = v.timestamp; oldestMmsi = m }
     }
     if (oldestMmsi) vesselCache.delete(oldestMmsi)
@@ -288,6 +290,10 @@ export function getAllVessels(): AISVessel[] {
 
 export function getVesselByMmsi(mmsi: number): AISVessel | undefined {
   return vesselCache.get(mmsi)
+}
+
+export function addProtectedMmsi(mmsi: number): void {
+  protectedMmsis.add(mmsi)
 }
 
 export function getVesselsInBounds(
