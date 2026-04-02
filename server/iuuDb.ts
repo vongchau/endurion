@@ -178,6 +178,102 @@ export function getAllIUURecords(): IUURecord[] {
   return selectAll.all().map(toRecord)
 }
 
+// --- Fuzzy name matching ---
+
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length
+  if (m === 0) return n
+  if (n === 0) return m
+  const dp: number[] = Array.from({ length: n + 1 }, (_, i) => i)
+  for (let i = 1; i <= m; i++) {
+    let prev = i - 1
+    dp[0] = i
+    for (let j = 1; j <= n; j++) {
+      const tmp = dp[j]
+      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1])
+      prev = tmp
+    }
+  }
+  return dp[n]
+}
+
+function tokenSimilarity(a: string, b: string): number {
+  const tokensA = a.toLowerCase().split(/[\s\-_.,]+/).filter(Boolean)
+  const tokensB = b.toLowerCase().split(/[\s\-_.,]+/).filter(Boolean)
+  if (tokensA.length === 0 || tokensB.length === 0) return 0
+
+  let matchScore = 0
+  for (const ta of tokensA) {
+    let bestMatch = 0
+    for (const tb of tokensB) {
+      const maxLen = Math.max(ta.length, tb.length)
+      if (maxLen === 0) continue
+      const dist = levenshtein(ta, tb)
+      const sim = 1 - dist / maxLen
+      if (sim > bestMatch) bestMatch = sim
+    }
+    matchScore += bestMatch
+  }
+
+  return matchScore / Math.max(tokensA.length, tokensB.length)
+}
+
+const FUZZY_THRESHOLD = 0.75
+
+export function fuzzyLookupByName(name: string): { record: IUURecord; similarity: number } | undefined {
+  if (!name || name.length < 3) return undefined
+  const lower = name.toLowerCase()
+
+  let bestRecord: IUURecord | undefined
+  let bestSim = 0
+
+  for (const [storedName, record] of byName) {
+    const sim = tokenSimilarity(lower, storedName)
+    if (sim > bestSim && sim >= FUZZY_THRESHOLD) {
+      bestSim = sim
+      bestRecord = record
+    }
+  }
+
+  return bestRecord ? { record: bestRecord, similarity: bestSim } : undefined
+}
+
+// --- EEZ dwell tracking persistence ---
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS iuu_eez_dwells (
+    mmsi              INTEGER NOT NULL,
+    eez_mrgid         INTEGER NOT NULL,
+    entry_time        INTEGER NOT NULL,
+    last_seen_time    INTEGER NOT NULL,
+    total_minutes     REAL    NOT NULL DEFAULT 0,
+    PRIMARY KEY (mmsi, eez_mrgid)
+  );
+`)
+
+const upsertDwell = db.prepare(`
+  INSERT INTO iuu_eez_dwells (mmsi, eez_mrgid, entry_time, last_seen_time, total_minutes)
+  VALUES (@mmsi, @eezMrgid, @entryTime, @lastSeenTime, @totalMinutes)
+  ON CONFLICT(mmsi, eez_mrgid) DO UPDATE SET
+    last_seen_time = @lastSeenTime, total_minutes = @totalMinutes
+`)
+
+export function persistDwell(mmsi: number, eezMrgid: number, entryTime: number, lastSeenTime: number, totalMinutes: number): void {
+  upsertDwell.run({ mmsi, eezMrgid, entryTime, lastSeenTime, totalMinutes })
+}
+
+const deleteDwell = db.prepare('DELETE FROM iuu_eez_dwells WHERE mmsi = ? AND eez_mrgid = ?')
+
+export function removeDwell(mmsi: number, eezMrgid: number): void {
+  deleteDwell.run(mmsi, eezMrgid)
+}
+
+const selectDwells = db.prepare('SELECT * FROM iuu_eez_dwells')
+
+export function loadPersistedDwells(): { mmsi: number; eezMrgid: number; entryTime: number; lastSeenTime: number; totalMinutes: number }[] {
+  return selectDwells.all() as any[]
+}
+
 // --- IUU match persistence ---
 
 export interface PersistedMatch {

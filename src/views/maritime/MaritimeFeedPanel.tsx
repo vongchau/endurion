@@ -3,13 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../store'
 import { useIUUAlerts } from '../../hooks/useIUUAlerts'
 import { useIUUVessels } from '../../hooks/useIUUVessels'
-import type { IUUConfidence } from '../../types'
+import type { IUUConfidence, MaritimeAlertCategory } from '../../types'
 import { mapRef } from '../../mapRef'
 
 const CONFIDENCE_COLORS: Record<IUUConfidence, string> = {
   HIGH: 'text-hud-red border-hud-red/40',
   MEDIUM: 'text-hud-amber border-hud-amber/40',
   LOW: 'text-hud-dim border-hud-dim/40',
+}
+
+const CATEGORY_LABELS: Record<MaritimeAlertCategory, { label: string; color: string }> = {
+  eez_violation:     { label: 'EEZ',    color: '#ff2d2d' },
+  dark_period:       { label: 'DARK',   color: '#7b2fff' },
+  dwell_escalation:  { label: 'DWELL',  color: '#ffaa00' },
+  transshipment:     { label: 'TRANS',  color: '#ff8800' },
 }
 
 function formatTime(ts: number): string {
@@ -60,10 +67,12 @@ export function MaritimeFeedPanel() {
           <div className="flex-1 overflow-y-auto">
             {alerts.length > 0 && (
               <div className="px-3 pt-2 pb-1">
-                <span className="font-mono text-[8px] tracking-[0.2em] text-hud-red">EEZ VIOLATIONS</span>
+                <span className="font-mono text-[8px] tracking-[0.2em] text-hud-red">ALERTS</span>
               </div>
             )}
-            {alerts.slice(0, 50).map((alert) => (
+            {alerts.slice(0, 50).map((alert) => {
+              const cat = CATEGORY_LABELS[alert.category ?? 'eez_violation']
+              return (
               <button
                 key={alert.id}
                 onClick={() => {
@@ -78,6 +87,12 @@ export function MaritimeFeedPanel() {
                 className="w-full text-left px-3 py-2 border-b border-hud-dim/10 hover:bg-hud-red/5 transition-colors"
               >
                 <div className="flex items-center gap-1.5">
+                  <span
+                    className="text-[8px] font-mono border px-1 rounded"
+                    style={{ color: cat.color, borderColor: `${cat.color}66` }}
+                  >
+                    {cat.label}
+                  </span>
                   <span className={`text-[9px] font-mono border px-1 rounded ${CONFIDENCE_COLORS[alert.match.confidence]}`}>
                     {alert.match.confidence}
                   </span>
@@ -88,14 +103,22 @@ export function MaritimeFeedPanel() {
                     {formatTime(alert.timestamp)}
                   </span>
                 </div>
-                <div className="font-mono text-[10px] text-hud-dim mt-0.5 truncate">
-                  {alert.eezName}
-                </div>
+                {alert.detail ? (
+                  <div className="font-mono text-[10px] text-hud-dim mt-0.5 truncate">
+                    {alert.detail}
+                  </div>
+                ) : alert.eezName ? (
+                  <div className="font-mono text-[10px] text-hud-dim mt-0.5 truncate">
+                    {alert.eezName}
+                    {alert.dwellMinutes ? ` \u00B7 ${alert.dwellMinutes}min` : ''}
+                  </div>
+                ) : null}
                 <div className="font-mono text-[9px] text-hud-dim/50 mt-0.5">
-                  matched: {alert.match.matchedFields.join(', ')}
+                  {alert.match.matchedFields.join(', ')}
                 </div>
               </button>
-            ))}
+            )})}
+
 
             {flaggedVessels.length > 0 && (
               <div className="px-3 pt-3 pb-1">

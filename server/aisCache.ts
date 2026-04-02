@@ -296,6 +296,23 @@ export function addProtectedMmsi(mmsi: number): void {
   protectedMmsis.add(mmsi)
 }
 
+/** Check if a vessel just reappeared after a dark period (>1h gap).
+ *  Returns gap duration in minutes, or 0 if no significant gap. */
+export function checkDarkPeriod(mmsi: number): number {
+  const hist = vesselHistory.get(mmsi)
+  if (!hist || hist.length < 2) return 0
+  const last = hist[hist.length - 1]
+  const prev = hist[hist.length - 2]
+  const gap = last - prev
+  if (gap > GAP_THRESHOLD_MS) return Math.round(gap / 60_000)
+  return 0
+}
+
+/** Get all vessels in the cache (for proximity checks). */
+export function getVesselCache(): Map<number, AISVessel> {
+  return vesselCache
+}
+
 export function getVesselsInBounds(
   minLng: number, minLat: number, maxLng: number, maxLat: number,
 ): AISVessel[] {

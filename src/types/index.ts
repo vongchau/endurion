@@ -92,13 +92,24 @@ export interface IUUMatch {
   matchedFields: string[]
 }
 
+export type MaritimeAlertCategory = 'eez_violation' | 'dark_period' | 'dwell_escalation' | 'transshipment'
+
 export interface IUUAlert {
   id: string
+  category: MaritimeAlertCategory
   vessel: AISVessel
   match: IUUMatch
   eezName: string
   eezMrgid: number
   timestamp: number
+  /** Extra context depending on category */
+  detail?: string
+  /** Second vessel involved (transshipment) */
+  secondVessel?: AISVessel
+  /** Dwell time in minutes (dwell_escalation) */
+  dwellMinutes?: number
+  /** Dark period duration in minutes */
+  darkMinutes?: number
 }
 
 export interface VesselDensityZone {

@@ -37,7 +37,37 @@ export function IUUVesselDetail({ data }: { data: IUUAlert }) {
       <DataRow label="SPEED" value={`${vessel.speed.toFixed(1)} kn`} />
       <DataRow label="COURSE" value={`${vessel.course.toFixed(1)}\u00B0`} />
 
-      {eezName && (
+      {/* Alert context */}
+      {data.category === 'dark_period' && (
+        <div className="mt-3 px-2 py-1.5 rounded border border-purple-500/30 bg-purple-500/5">
+          <div className="font-mono text-[8px] tracking-wider text-purple-400">DARK PERIOD DETECTED</div>
+          <div className="font-mono text-[10px] text-hud-text mt-0.5">
+            Vessel went silent for {data.darkMinutes ?? '?'} minutes
+          </div>
+          {eezName && <div className="font-mono text-[9px] text-hud-dim mt-0.5">Reappeared in {eezName}</div>}
+        </div>
+      )}
+      {data.category === 'dwell_escalation' && eezName && (
+        <div className="mt-3 px-2 py-1.5 rounded border border-hud-amber/30 bg-hud-amber/5">
+          <div className="font-mono text-[8px] tracking-wider text-hud-amber">EXTENDED EEZ PRESENCE</div>
+          <div className="font-mono text-[10px] text-hud-text mt-0.5">{eezName}</div>
+          <div className="font-mono text-[9px] text-hud-dim mt-0.5">
+            Dwell time: {data.dwellMinutes ?? '?'} minutes
+          </div>
+        </div>
+      )}
+      {data.category === 'transshipment' && (
+        <div className="mt-3 px-2 py-1.5 rounded border border-orange-500/30 bg-orange-500/5">
+          <div className="font-mono text-[8px] tracking-wider text-orange-400">POTENTIAL TRANSSHIPMENT</div>
+          {data.secondVessel && (
+            <div className="font-mono text-[10px] text-hud-text mt-0.5">
+              Rendezvous with {data.secondVessel.name || `MMSI ${data.secondVessel.mmsi}`}
+            </div>
+          )}
+          {data.detail && <div className="font-mono text-[9px] text-hud-dim mt-0.5">{data.detail}</div>}
+        </div>
+      )}
+      {(data.category === 'eez_violation' || !data.category) && eezName && (
         <div className="mt-3 px-2 py-1.5 rounded border border-hud-red/30 bg-hud-red/5">
           <div className="font-mono text-[8px] tracking-wider text-hud-red">EEZ VIOLATION</div>
           <div className="font-mono text-[10px] text-hud-text mt-0.5">{eezName}</div>
