@@ -51,6 +51,8 @@ export type GlobalLayer = 'conflict' | 'disaster' | 'military' | 'maritime' | 'n
 
 export type CityLayer = 'uas' | 'zones' | 'traffic' | 'weather' | 'crime' | 'aircraft' | 'power'
 
+export type MaritimeLayer = 'eez' | 'traffic' | 'iuu'
+
 export interface AISVessel {
   mmsi: number
   name: string

@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHUDStore } from '../../../store'
 import { useGlobalData } from '../../../hooks/useGlobalData'
-import type { GlobalLayer, CityLayer, CityBasemap, CyberPanel } from '../../../types'
+import type { GlobalLayer, CityLayer, CityBasemap, CyberPanel, MaritimeLayer } from '../../../types'
 
 const VIEW_LABELS = {
   global: { title: 'GLOBAL THREAT OVERVIEW', subtitle: 'ALL-SOURCE INTELLIGENCE' },
@@ -376,6 +376,92 @@ function CyberPanelDropdown() {
   )
 }
 
+const MARITIME_LAYERS: { key: MaritimeLayer; label: string; color: string }[] = [
+  { key: 'eez',     label: 'EEZ BOUNDARIES', color: '#00d4ff' },
+  { key: 'traffic', label: 'AIS TRAFFIC',    color: '#4a6080' },
+  { key: 'iuu',     label: 'IUU VESSELS',    color: '#ff2d2d' },
+]
+
+function MaritimeLayerDropdown() {
+  const [open, setOpen] = useState(false)
+  const maritimeLayers = useHUDStore((s) => s.maritimeLayers)
+  const toggleMaritimeLayer = useHUDStore((s) => s.toggleMaritimeLayer)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const activeCount = maritimeLayers.size
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 px-2 py-1 rounded border border-hud-red/30 font-mono text-[10px] tracking-wider text-hud-red hover:bg-hud-red/10 transition-colors"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-hud-red" />
+        LAYERS
+        <span className="text-hud-dim">{activeCount}</span>
+        <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <path d="M0 0L4 5L8 0Z" />
+        </svg>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-hud-red/20 bg-hud-panel/95 backdrop-blur-md shadow-lg overflow-hidden z-50"
+          >
+            <div className="px-3 py-1.5 border-b border-hud-dim/10">
+              <span className="font-mono text-[8px] tracking-[0.2em] text-hud-dim">MARITIME LAYERS</span>
+            </div>
+            {MARITIME_LAYERS.map(({ key, label, color }) => {
+              const active = maritimeLayers.has(key)
+              return (
+                <button
+                  key={key}
+                  onClick={() => toggleMaritimeLayer(key)}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-white/[0.03] transition-colors"
+                >
+                  <span
+                    className="w-3 h-3 rounded border flex items-center justify-center transition-colors"
+                    style={{
+                      borderColor: active ? color : '#4a6080',
+                      backgroundColor: active ? `${color}20` : 'transparent',
+                    }}
+                  >
+                    {active && (
+                      <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                        <path d="M1 3L3 5L7 1" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </span>
+                  <span
+                    className="font-mono text-[10px] tracking-wider"
+                    style={{ color: active ? color : '#4a6080' }}
+                  >
+                    {label}
+                  </span>
+                </button>
+              )
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export function StatusBar() {
   const activeView = useHUDStore((s) => s.activeView)
   const panels = useHUDStore((s) => s.panels)
@@ -412,6 +498,7 @@ export function StatusBar() {
             {activeView === 'city' && <CityBasemapToggle />}
             {activeView === 'city' && <CityLayerDropdown />}
             {activeView === 'cyber' && <CyberPanelDropdown />}
+            {activeView === 'maritime' && <MaritimeLayerDropdown />}
             {activeView !== 'space' && (
               <>
                 <div className="flex items-center gap-1.5">
