@@ -160,7 +160,11 @@ export function MaritimeLayer() {
   // Clear selection on empty click
   const handleMapClick = useCallback((e: MapMouseEvent) => {
     if (!map) return
-    // Only query layers that currently exist
+    // If the click originated from a Marker button, don't clear
+    const target = e.originalEvent.target as HTMLElement
+    if (target.closest('button')) return
+
+    // Check if click hit any Mapbox layers
     const queryLayers: string[] = []
     if (showTraffic) queryLayers.push('maritime-vessels-hit')
     if (showEEZ) queryLayers.push('eez-fill')
