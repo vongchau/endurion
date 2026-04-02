@@ -120,6 +120,11 @@ export function MaritimeLayer() {
   const { current: map } = useMap()
   const setSelectedEntity = useHUDStore((s) => s.setSelectedEntity)
   const setPanelVisible = useHUDStore((s) => s.setPanelVisible)
+  const maritimeLayers = useHUDStore((s) => s.maritimeLayers)
+
+  const showEEZ = maritimeLayers.has('eez')
+  const showTraffic = maritimeLayers.has('traffic')
+  const showIUU = maritimeLayers.has('iuu')
 
   const { eezData } = useEEZ(true)
   const { alerts } = useIUUAlerts(true)
@@ -189,20 +194,24 @@ export function MaritimeLayer() {
   return (
     <>
       {/* EEZ boundaries */}
-      <Source id="eez" type="geojson" data={eezGeoJSON}>
-        <Layer {...EEZ_FILL} />
-        <Layer {...EEZ_LINE} />
-      </Source>
+      {showEEZ && (
+        <Source id="eez" type="geojson" data={eezGeoJSON}>
+          <Layer {...EEZ_FILL} />
+          <Layer {...EEZ_LINE} />
+        </Source>
+      )}
 
       {/* All AIS vessels */}
-      <Source id="maritime-vessel-data" type="geojson" data={vesselGeoJSON}>
-        <Layer {...VESSEL_DOTS} />
-        <Layer {...VESSEL_HIT} />
-        <Layer {...VESSEL_LABELS} />
-      </Source>
+      {showTraffic && (
+        <Source id="maritime-vessel-data" type="geojson" data={vesselGeoJSON}>
+          <Layer {...VESSEL_DOTS} />
+          <Layer {...VESSEL_HIT} />
+          <Layer {...VESSEL_LABELS} />
+        </Source>
+      )}
 
       {/* IUU vessel markers (on top) */}
-      {flaggedVessels.map(({ vessel, match }) => {
+      {showIUU && flaggedVessels.map(({ vessel, match }) => {
         const style = CONFIDENCE_STYLES[match.confidence]
         return (
           <Marker key={`iuu-${vessel.mmsi}`} longitude={vessel.lng} latitude={vessel.lat} anchor="center">
