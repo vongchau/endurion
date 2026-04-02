@@ -4,7 +4,7 @@ import type {
 } from '../src/types'
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const MAX_VESSELS       = 50_000
+const MAX_VESSELS       = 20_000
 const STALE_MS          = 30 * 60 * 1000   // 30 min
 const CANDIDATE_TTL_MS  = 2 * 60 * 60 * 1000
 const DENSITY_WINDOW_MS = 30 * 60 * 1000
