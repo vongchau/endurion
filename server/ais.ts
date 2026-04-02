@@ -3,13 +3,16 @@ import { processVesselMessage, cleanupStaleVessels } from './aisCache'
 import { checkVesselIdentity } from './iuuMatcher'
 
 const WS_URL         = 'wss://stream.aisstream.io/v0/stream'
-const RECONNECT_MS   = 10_000
+const BASE_RECONNECT_MS = 10_000
+const MAX_RECONNECT_MS  = 120_000  // Cap at 2 minutes
 const CLEANUP_MS     = 5 * 60 * 1000
 const KEEPALIVE_MS   = 30_000  // Ping every 30s to prevent Azure proxy timeout
 
 let ws: WebSocket | null = null
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 let keepaliveTimer: ReturnType<typeof setInterval> | null = null
+let reconnectAttempts = 0
+let firstMessageLogged = false
 export let isConnected = false
 
 function connect(apiKey: string): void {
@@ -20,7 +23,8 @@ function connect(apiKey: string): void {
 
   ws.addEventListener('open', () => {
     isConnected = true
-    console.log('[ais] connected — subscribing global coverage')
+    firstMessageLogged = false
+    console.log(`[ais] connected — subscribing global coverage (attempt ${reconnectAttempts + 1})`)
     ws!.send(JSON.stringify({
       APIKey: apiKey,
       BoundingBoxes: [[[-90, -180], [90, 180]]],
@@ -39,6 +43,14 @@ function connect(apiKey: string): void {
   ws.addEventListener('message', async (event) => {
     try {
       const raw = event.data instanceof Blob ? await event.data.text() : String(event.data)
+
+      // Log first message for debugging connection issues
+      if (!firstMessageLogged) {
+        firstMessageLogged = true
+        reconnectAttempts = 0  // Reset on successful data
+        console.log(`[ais] first message received (${raw.length} bytes): ${raw.slice(0, 200)}`)
+      }
+
       const msg = JSON.parse(raw)
       const meta = msg.MetaData
       if (!meta) return
@@ -97,20 +109,24 @@ function connect(apiKey: string): void {
   })
 
   ws.addEventListener('error', (e) => {
-    console.error('[ais] WebSocket error:', (e as ErrorEvent).message ?? e)
+    const err = e as ErrorEvent
+    console.error('[ais] WebSocket error:', err.message ?? err.error ?? 'unknown')
   })
 
   ws.addEventListener('close', (e) => {
+    console.log(`[ais] close reason: "${e.reason || 'none'}"`)
     isConnected = false
     if (keepaliveTimer) { clearInterval(keepaliveTimer); keepaliveTimer = null }
-    console.log(`[ais] disconnected (code=${e.code}), reconnecting in ${RECONNECT_MS / 1000}s`)
-    scheduleReconnect(apiKey)
+    reconnectAttempts++
+    const delay = Math.min(BASE_RECONNECT_MS * Math.pow(2, Math.min(reconnectAttempts - 1, 4)), MAX_RECONNECT_MS)
+    console.log(`[ais] disconnected (code=${e.code}), reconnecting in ${(delay / 1000).toFixed(0)}s (attempt ${reconnectAttempts})`)
+    scheduleReconnect(apiKey, delay)
   })
 }
 
-function scheduleReconnect(apiKey: string): void {
+function scheduleReconnect(apiKey: string, delayMs?: number): void {
   if (reconnectTimer) clearTimeout(reconnectTimer)
-  reconnectTimer = setTimeout(() => connect(apiKey), RECONNECT_MS)
+  reconnectTimer = setTimeout(() => connect(apiKey), delayMs ?? BASE_RECONNECT_MS)
 }
 
 export function startAis(): void {
