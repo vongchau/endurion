@@ -1,6 +1,6 @@
 // server/iuuMatcher.ts — IUU detection: identity matching, dark periods, EEZ dwell, transshipment
 import {
-  lookupByMmsi, lookupByImo, lookupByName, lookupByCallSign, fuzzyLookupByName,
+  lookupByMmsi, lookupByImo, lookupByName, lookupByCallSign,
   persistMatch, persistEEZAlert, loadPersistedMatches, loadPersistedAlerts,
   persistDwell, removeDwell, loadPersistedDwells,
   type PersistedMatch,
@@ -80,15 +80,6 @@ export function checkVesselIdentity(
 
   const csRec = callSign ? lookupByCallSign(callSign) : undefined
   if (csRec) { record = record ?? csRec; matchedFields.push('callSign') }
-
-  // Fuzzy name matching as fallback
-  if (!record && name) {
-    const fuzzy = fuzzyLookupByName(name)
-    if (fuzzy) {
-      record = fuzzy.record
-      matchedFields.push(`name~${Math.round(fuzzy.similarity * 100)}%`)
-    }
-  }
 
   if (!record || matchedFields.length === 0) return null
 
